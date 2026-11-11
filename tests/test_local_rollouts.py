@@ -126,7 +126,7 @@ class TestRollouts:
         diff = runs.diff(run_dir)
         assert "Feature.java" in diff
         assert "CLAUDE.md" not in diff
-        assert runs.finished("r1")
+        assert runs.finished("r1", world["harness"], "Add Feature.java.")
 
     def test_snapshot_has_no_history(self, world):
         rollouts, _, runs, _ = self._wire(world)
@@ -141,6 +141,20 @@ class TestRollouts:
         rollouts.run("t1", world["harness"], "r1", timeout=60)
         rollouts.run("t1", world["harness"], "r1", timeout=60)
         assert agent.runs == 1
+
+    def test_reruns_new_instruction(self, world):
+        rollouts, _, _, agent = self._wire(world)
+        rollouts.run("t1", world["harness"], "r1", timeout=60)
+        (world["tasks"] / "t1" / "instruction.md").write_text("Add Feature.java, documented.\n")
+        rollouts.run("t1", world["harness"], "r1", timeout=60)
+        assert agent.runs == 2
+
+    def test_reruns_new_harness(self, world):
+        rollouts, _, _, agent = self._wire(world)
+        rollouts.run("t1", world["harness"], "r1", timeout=60)
+        (world["harness"] / "CLAUDE.md").write_text("Improved rules.\n")
+        rollouts.run("t1", world["harness"], "r1", timeout=60)
+        assert agent.runs == 2
 
     def test_judged_by_criteria(self, world):
         rollouts, judge, _, _ = self._wire(world)

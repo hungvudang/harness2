@@ -29,11 +29,12 @@ class Rollouts:
         self._clock = clock
 
     def run(self, task_id: str, harness: Path, run_id: str, timeout: int) -> Path:
-        """Idempotent by run_id: a finished rollout is returned, not repeated."""
-        if self._runs.finished(run_id):
+        """Idempotent by run_id, harness and instruction: a finished rollout of the same inputs
+        is returned, not repeated; one of an older harness or instruction is rolled again."""
+        task = self._taskset.task(task_id)
+        if self._runs.finished(run_id, harness, task.instruction):
             log.debug("rollout %s already finished", run_id)
             return self._runs.path(run_id)
-        task = self._taskset.task(task_id)
         run_dir = self._runs.reset(run_id)
         workspace = self._workspaces(self._runs.workspace(run_dir))
         workspace.checkout(self._taskset.project.repo, task.commit)
@@ -52,7 +53,7 @@ class Rollouts:
             wall_s=round(self._clock() - started, 1),
             fingerprint=fingerprint,
         )
-        self._runs.save(rollout, diff)
+        self._runs.save(rollout, diff, harness, task.instruction)
         if outcome.failed:
             log.warning(
                 "rollout %s/%s failed (rc=%s); see %s", task.id, run_id, outcome.rc, run_dir
