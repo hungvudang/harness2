@@ -14,25 +14,20 @@
 
 """The solver substrates behind one interface (substrate/base.py).
 
-`OpencodeSubstrate` carries OPENCODE_SURFACE and three install modes; `CodexSubstrate`
-carries CODEX_SURFACE and one; `ClaudeSubstrate` carries CLAUDE_SURFACE and one.
+Each framework package (`opencode`, `codex`, `claude`) carries its `SubstrateImpl` and its
+editable `SURFACE`; opencode has three install modes, codex and claude one each.
 Benchmark adapters supply the launcher body.
 """
 
+from . import claude, codex, opencode
 from .base import Install, Launcher, RunRequest, Substrate
-from .claude import CLAUDE_SURFACE, ClaudeSubstrate
-from .codex import CODEX_SURFACE, CodexSubstrate
-from .opencode import OPENCODE_SURFACE, OpencodeSubstrate
 
 __all__ = [
     "Install",
     "Launcher",
     "RunRequest",
     "Substrate",
-    "OpencodeSubstrate",
-    "OPENCODE_SURFACE",
-    "CodexSubstrate",
-    "CODEX_SURFACE",
-    "ClaudeSubstrate",
-    "CLAUDE_SURFACE",
+    "claude",
+    "codex",
+    "opencode",
 ]

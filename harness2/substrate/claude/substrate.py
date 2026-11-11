@@ -15,14 +15,14 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, Mapping
 
-from .. import config
-from ..core import runmark as RM
-from ..core import tree as HT
-from ..core.tree import SurfaceSpec
-from ..utils import strings
-from .base import Install, Launcher, RunRequest
+from ... import config
+from ...core import runmark as RM
+from ...core import tree as HT
+from ...core.tree import SurfaceSpec
+from ...utils import strings
+from ..base import Install, Launcher, RunRequest
 
-CLAUDE_SURFACE = SurfaceSpec(
+SURFACE = SurfaceSpec(
     name="claude",
     always_on=("CLAUDE.md",),
     always_on_max=12_000,
@@ -118,14 +118,14 @@ def agent_file(name: str, body: str) -> str:
     return f"---\n{meta}\n---\n{body[m.end() :]}"
 
 
-class ClaudeSubstrate:
+class SubstrateImpl:
     name = "cc"
 
     def __init__(self, launcher: Launcher | None = None):
         self._launcher = launcher
 
     def surface(self) -> SurfaceSpec:
-        return CLAUDE_SURFACE
+        return SURFACE
 
     def materialise(self, tree_dir: Path, spec, ctx: Mapping[str, str]) -> Install:
         """Stage the tree as Claude Code project files; sub_agents become .claude/agents."""
@@ -135,7 +135,7 @@ class ClaudeSubstrate:
                 f"substrate has exactly one: 'claude_root'"
             )
         tree_dir = Path(tree_dir)
-        if not HT.is_tree(CLAUDE_SURFACE, tree_dir):
+        if not HT.is_tree(SURFACE, tree_dir):
             raise ValueError(f"{tree_dir} is not a Claude Code harness tree (no CLAUDE.md)")
         staged = Path(tempfile.mkdtemp(prefix="adapt-cc-root-"))
         for entry in CLAUDE_ROOT_ENTRIES:
@@ -148,8 +148,8 @@ class ClaudeSubstrate:
                 shutil.copytree(src, dest, ignore=shutil.ignore_patterns("README.md"))
             else:
                 shutil.copy2(src, dest)
-        harness = HT.read_tree(CLAUDE_SURFACE, tree_dir)
-        for name in HT.subagent_names(CLAUDE_SURFACE, harness):
+        harness = HT.read_tree(SURFACE, tree_dir)
+        for name in HT.subagent_names(SURFACE, harness):
             dest = staged / ".claude" / "agents" / f"{name}.md"
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(
@@ -261,7 +261,7 @@ class ClaudeSubstrate:
     ) -> list[Path]:
         if self._launcher is None:
             raise RuntimeError(
-                "ClaudeSubstrate was constructed without a launcher body; the benchmark "
+                "SubstrateImpl was constructed without a launcher body; the benchmark "
                 "adapter must supply one (it owns the workspace and read-back locations)"
             )
         return self._launcher(

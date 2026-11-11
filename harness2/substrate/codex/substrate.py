@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""CodexSubstrate: codex-cli (config.CODEX_VERSION) as a solver substrate.
+"""SubstrateImpl: codex-cli (config.CODEX_VERSION) as a solver substrate.
 
-Carries the c1..c8 surface (CODEX_SURFACE), the one install mode (codex_root: AGENTS.md,
+Carries the c1..c8 surface (SURFACE), the one install mode (codex_root: AGENTS.md,
 .agents, scripts and .codex copied to the workspace root, where `codex exec -C <ws>` finds
 them), the `codex exec` flag contract, and the codex thread-item trajectory renderer.
 Per-deployment differences are values in Install.extras, never subclasses.
@@ -30,13 +30,13 @@ import tempfile
 from pathlib import Path
 from typing import Mapping
 
-from .. import config
-from ..core import runmark as RM
-from ..core import tree as HT
-from ..core.tree import SurfaceSpec
-from .base import Install, Launcher, RunRequest
+from ... import config
+from ...core import runmark as RM
+from ...core import tree as HT
+from ...core.tree import SurfaceSpec
+from ..base import Install, Launcher, RunRequest
 
-CODEX_SURFACE = SurfaceSpec(
+SURFACE = SurfaceSpec(
     name="codex",
     always_on=("AGENTS.md",),
     always_on_max=8_000,
@@ -106,7 +106,7 @@ CODEX_SURFACE = SurfaceSpec(
 CODEX_ROOT_ENTRIES = ("AGENTS.md", ".agents", "scripts", ".codex")
 
 
-class CodexSubstrate:
+class SubstrateImpl:
     """codex-cli behind the one Substrate interface."""
 
     name = "cx"
@@ -115,7 +115,7 @@ class CodexSubstrate:
         self._launcher = launcher
 
     def surface(self) -> SurfaceSpec:
-        return CODEX_SURFACE
+        return SURFACE
 
     def materialise(self, tree_dir: Path, spec, ctx: Mapping[str, str]) -> Install:
         """Stage exactly the codex_root entries for a copy to the workspace root; there is
@@ -126,7 +126,7 @@ class CodexSubstrate:
                 f"has exactly one: 'codex_root'"
             )
         tree_dir = Path(tree_dir)
-        if not HT.is_tree(CODEX_SURFACE, tree_dir):
+        if not HT.is_tree(SURFACE, tree_dir):
             raise ValueError(f"{tree_dir} is not a codex harness tree (no AGENTS.md)")
         staged = Path(tempfile.mkdtemp(prefix="adapt-cx-root-"))
         for entry in CODEX_ROOT_ENTRIES:
@@ -189,7 +189,7 @@ class CodexSubstrate:
     ) -> list[Path]:
         if self._launcher is None:
             raise RuntimeError(
-                "CodexSubstrate was constructed without a launcher body; the benchmark "
+                "SubstrateImpl was constructed without a launcher body; the benchmark "
                 "adapter must supply one (it owns runner choice, CODEX_HOME flavour and "
                 "read-back locations)"
             )

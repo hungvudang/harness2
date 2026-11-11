@@ -35,9 +35,8 @@ from .. import config
 from ..core import runmark as RM
 from ..core import tree as HT
 from ..core.spec import BenchPrompts, BenchSpec, resolve_channel_model
+from ..substrate import codex, opencode
 from ..substrate.base import Install, RunRequest
-from ..substrate.codex import CODEX_SURFACE, CodexSubstrate
-from ..substrate.opencode import OPENCODE_SURFACE, OpencodeSubstrate
 from .tasks import discover, select
 
 JUDGE_MODEL = config.LAB_JUDGE_MODEL
@@ -536,11 +535,11 @@ class LabAdapter:
             raise ValueError(f"skill_mode must be 'native' or 'inline', got {skill_mode!r}")
         self.spec = lab_spec(substrate)
         if substrate == "oc":
-            self.substrate = OpencodeSubstrate(launcher=self._launch_oc)
+            self.substrate = opencode.SubstrateImpl(launcher=self._launch_oc)
             self.model = model or config.SOLVER_MODEL_OC
             self._results_root = config.RUNS / "lab" / "results" / "oc"
         else:
-            self.substrate = CodexSubstrate(launcher=self._launch_cx)
+            self.substrate = codex.SubstrateImpl(launcher=self._launch_cx)
             self.model = model or config.SOLVER_MODEL_CX
 
             self._results_root = config.RUNS / "lab" / "results" / "cx"
@@ -848,7 +847,7 @@ class LabAdapter:
             if d not in _BASE_DONE:
                 if self.substrate.name == "oc":
                     HT.write_tree(
-                        OPENCODE_SURFACE,
+                        opencode.SURFACE,
                         {
                             "systemprompt.md": _opencode_base_body(self.skill_mode),
                             "guardrails.md": "",
@@ -858,7 +857,7 @@ class LabAdapter:
                         d,
                     )
                 else:
-                    HT.write_tree(CODEX_SURFACE, {"AGENTS.md": CODEX_BASE_BODY}, d)
+                    HT.write_tree(codex.SURFACE, {"AGENTS.md": CODEX_BASE_BODY}, d)
                 _BASE_DONE.add(d)
         return d
 
@@ -872,7 +871,7 @@ class LabAdapter:
 
     def _validate_oc(self, tree: dict[str, str]) -> None:
         with tempfile.TemporaryDirectory() as td:
-            d = HT.write_tree(OPENCODE_SURFACE, tree, Path(td) / "h", stubs=False)
+            d = HT.write_tree(opencode.SURFACE, tree, Path(td) / "h", stubs=False)
             try:
                 r = subprocess.run(
                     [str(config.LAB_PYTHON), "-c", _RENDER_CHECK_SRC, str(d), self.skill_mode],
@@ -904,7 +903,7 @@ class LabAdapter:
             raise ValueError(" | ".join(errs))
 
     def _validate_cx(self, tree: dict[str, str]) -> None:
-        body = HT.always_on_text(CODEX_SURFACE, tree)
+        body = HT.always_on_text(codex.SURFACE, tree)
         errs = []
         if "output/" not in body:
             errs.append(

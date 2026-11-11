@@ -38,9 +38,8 @@ from ..core import runmark as RM
 from ..core import tree as HT
 from ..core.spec import BenchPrompts, BenchSpec, resolve_channel_model
 from ..install import codex_config_error
+from ..substrate import codex, opencode
 from ..substrate.base import Install, RunRequest
-from ..substrate.codex import CodexSubstrate
-from ..substrate.opencode import OUTPUT_TOKEN_MAX, OpencodeSubstrate
 from .tasks import discover, select
 
 _RUNNER_DIR = config.THIRD_PARTY / "jb_runner"
@@ -639,9 +638,9 @@ class JobBenchAdapter:
         self.spec = make_spec(substrate)
         launcher = self._launch_opencode if substrate == "oc" else self._launch_codex
         self.substrate = (
-            OpencodeSubstrate(launcher=launcher)
+            opencode.SubstrateImpl(launcher=launcher)
             if substrate == "oc"
-            else CodexSubstrate(launcher=launcher)
+            else codex.SubstrateImpl(launcher=launcher)
         )
         self.timeout = int(timeout or _DEFAULT_TIMEOUT[substrate])
         self.store = Path(store_root) if store_root else config.RUNS / "jb" / "dataset"
@@ -808,7 +807,7 @@ class JobBenchAdapter:
             "TIMEOUT_PER_TASK": str(t),
             "MAX_RETRIES": "2",
             "MAX_CONCURRENT": "1",
-            "OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX": str(OUTPUT_TOKEN_MAX),
+            "OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX": str(opencode.OUTPUT_TOKEN_MAX),
         }
         self._run_runner(OC_RUNNER, env, wall=2 * t + 600, label=label)
         return [self._require_artifacts(task_id, label)]

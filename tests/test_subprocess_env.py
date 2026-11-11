@@ -34,10 +34,10 @@ class SubprocessEnvTests(unittest.TestCase):
 
     def test_scrub_env_across_launchers(self):
         from harness2.benchmarks import jobbench, lab, workbuddy
+        from harness2.substrate import codex
         from harness2.substrate.base import Install, RunRequest
-        from harness2.substrate.codex import CodexSubstrate
 
-        cx = CodexSubstrate()
+        cx = codex.SubstrateImpl()
         prop_inst = Proposer(self.proposer.spec, audit_dir=self.root / "audit_env")
         host = {
             "HARNESS2_JUDGE_API_KEY": "secret-judge",
@@ -251,7 +251,7 @@ class SubprocessEnvTests(unittest.TestCase):
     def test_configured_provider_keeps_its_key(self):
         from dataclasses import replace
 
-        from harness2.substrate.opencode import OpencodeSubstrate
+        from harness2.substrate import opencode
 
         host = {
             "OPENAI_API_KEY": "sk-openai",
@@ -285,8 +285,8 @@ class SubprocessEnvTests(unittest.TestCase):
             for model, kept in cases.items():
                 with self.subTest(model=model):
                     with patch.object(config, "SOLVER_MODEL_OC", model):
-                        executor = OpencodeSubstrate().run_env(config.os.environ, self.root)
-                    explicit = OpencodeSubstrate().run_env(
+                        executor = opencode.SubstrateImpl().run_env(config.os.environ, self.root)
+                    explicit = opencode.SubstrateImpl().run_env(
                         config.os.environ, self.root, model=model
                     )
                     improver = Proposer(

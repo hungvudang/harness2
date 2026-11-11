@@ -26,7 +26,7 @@ from . import config
 from .core import tree
 from .core.proposer import Proposer, Reply
 from .core.spec import BenchPrompts, BenchSpec, ChannelSpec
-from .substrate.opencode import OpencodeSubstrate
+from .substrate import opencode
 
 BASE_SCRIPT = """import csv
 import sys
@@ -42,7 +42,7 @@ print(f'Total: {total:.2f}')
 class DemoAdapter:
     def __init__(self, root: Path):
         self.root = root
-        self.substrate = OpencodeSubstrate()
+        self.substrate = opencode.SubstrateImpl()
         channel = ChannelSpec("opencode", "local/deterministic")
         self.spec = BenchSpec(
             name="demo",

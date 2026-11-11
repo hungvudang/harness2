@@ -9,8 +9,8 @@ from harness2.core import prompts as P
 from harness2.core import tree as HT
 from harness2.core.spec import BenchPrompts, BenchSpec, ChannelSpec
 from harness2.substrate.claude import (
-    CLAUDE_SURFACE,
-    ClaudeSubstrate,
+    SURFACE,
+    SubstrateImpl,
     agent_file,
     bash_rules,
     outcome,
@@ -41,14 +41,14 @@ class Surface(unittest.TestCase):
             "sub_agents/explorer/AGENT.md",
             "scripts/build_check.py",
         ):
-            self.assertTrue(HT.is_allowed(CLAUDE_SURFACE, rel), rel)
+            self.assertTrue(HT.is_allowed(SURFACE, rel), rel)
 
     def test_off_surface_paths(self):
         for rel in (".claude/settings.local.json", "src/Main.java", "AGENTS.md", "../CLAUDE.md"):
-            self.assertFalse(HT.is_allowed(CLAUDE_SURFACE, rel), rel)
+            self.assertFalse(HT.is_allowed(SURFACE, rel), rel)
 
     def test_prompt_text_names_claude_paths_only(self):
-        text = P._st(CLAUDE_SURFACE)
+        text = P._st(SURFACE)
         for part in (text.surface_md, text.tts_surface, text.inv, text.dom):
             self.assertNotIn("AGENTS.md", part)
             self.assertNotIn(".codex", part)
@@ -61,7 +61,7 @@ class Materialise(unittest.TestCase):
     def setUp(self):
         self.tree_dir = Path(tempfile.mkdtemp())
         HT.write_tree(
-            CLAUDE_SURFACE,
+            SURFACE,
             {
                 "CLAUDE.md": "Build with ./gradlew build.\n- When reviewing, use the `review` skill.\n",
                 ".claude/skills/review/SKILL.md": "---\ndescription: review a diff\n---\nSteps.\n",
@@ -70,7 +70,7 @@ class Materialise(unittest.TestCase):
             },
             self.tree_dir,
         )
-        self.substrate = ClaudeSubstrate()
+        self.substrate = SubstrateImpl()
 
     def tearDown(self):
         shutil.rmtree(self.tree_dir, ignore_errors=True)
@@ -106,7 +106,7 @@ class Materialise(unittest.TestCase):
 
 class Argv(unittest.TestCase):
     def test_isolated_and_allow_listed(self):
-        argv = ClaudeSubstrate().exec_argv(Path("/ws"), "sonnet", bash_prefixes=["./gradlew"])
+        argv = SubstrateImpl().exec_argv(Path("/ws"), "sonnet", bash_prefixes=["./gradlew"])
         self.assertIn("--strict-mcp-config", argv)
         self.assertEqual(argv[argv.index("--setting-sources") + 1], "project")
         self.assertEqual(argv[argv.index("--permission-mode") + 1], "acceptEdits")

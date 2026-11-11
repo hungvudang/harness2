@@ -10,13 +10,13 @@ from pathlib import Path
 
 from ....core import tree as HT
 from ....core.spec import BenchSpec
-from ....substrate.claude import CLAUDE_SURFACE, ClaudeSubstrate, outcome
+from ....substrate import claude
 from ...domain.rollout import Outcome
 from ...domain.task import Project
 
 
 class AgentImpl:
-    def __init__(self, substrate: ClaudeSubstrate, spec: BenchSpec, project: Project):
+    def __init__(self, substrate: claude.SubstrateImpl, spec: BenchSpec, project: Project):
         self._substrate = substrate
         self._spec = spec
         self._project = project
@@ -40,7 +40,7 @@ class AgentImpl:
             effort=self._project.effort,
             max_turns=self._project.max_turns,
         )
-        result = outcome(stream)
+        result = claude.outcome(stream)
         return Outcome(
             rc=rc,
             cost_usd=result.get("cost_usd", 0.0),
@@ -56,7 +56,7 @@ def project_setup(repo: Path) -> dict[str, str]:
     skills = repo / ".claude" / "skills"
     for p in sorted(skills.rglob("*")):
         rel = f".claude/skills/{p.relative_to(skills)}"
-        if p.is_file() and HT.is_allowed(CLAUDE_SURFACE, rel):
+        if p.is_file() and HT.is_allowed(claude.SURFACE, rel):
             harness[rel] = p.read_text(encoding="utf-8")
     for p in sorted((repo / ".claude" / "agents").glob("*.md")):
         harness[f"sub_agents/{p.stem}/AGENT.md"] = p.read_text(encoding="utf-8")

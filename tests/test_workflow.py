@@ -284,6 +284,7 @@ class WorkflowTests(unittest.TestCase):
         for mode in ("agg", "seq"):
             self.assertFalse(after_base_err["modes"][mode]["ok"])
             self.assertFalse(after_base_err["selections"][mode]["ok"])
+
     def test_failed_rejudge_keeps_grade_only_for_same_selection(self):
         from harness2.cli import judge as judge_cli
 

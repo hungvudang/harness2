@@ -40,10 +40,8 @@ from ..core import runmark as RM
 from ..core import tree as HT
 from ..core.selection import order_graded_first
 from ..core.spec import BenchPrompts, BenchSpec, resolve_channel_model
-from ..substrate import opencode as OC
+from ..substrate import codex, opencode
 from ..substrate.base import Install, RunRequest
-from ..substrate.codex import CODEX_SURFACE, CodexSubstrate
-from ..substrate.opencode import OPENCODE_SURFACE, OpencodeSubstrate
 from . import wb_render as RENDER
 from .tasks import discover, select
 
@@ -683,9 +681,9 @@ class WbAdapter:
         self.subset_info = SUBSETS[subset]
         self.spec = spec_for(subset, substrate)
         self.substrate = (
-            OpencodeSubstrate(launcher=self._launch)
+            opencode.SubstrateImpl(launcher=self._launch)
             if substrate == "oc"
-            else CodexSubstrate(launcher=self._launch)
+            else codex.SubstrateImpl(launcher=self._launch)
         )
 
     def tasks(self, split: str = "all") -> list[str]:
@@ -897,7 +895,7 @@ class WbAdapter:
             if d not in _BASE_DONE:
                 if self.substrate.name == "oc":
                     HT.write_tree(
-                        OPENCODE_SURFACE,
+                        opencode.SURFACE,
                         {
                             "systemprompt.md": "",
                             "guardrails.md": "",
@@ -909,7 +907,7 @@ class WbAdapter:
                     )
                 else:
                     HT.write_tree(
-                        CODEX_SURFACE,
+                        codex.SURFACE,
                         {
                             "AGENTS.md": (
                                 "Follow the task instructions and complete the requested work in the "
@@ -928,8 +926,8 @@ class WbAdapter:
         if self.substrate.name != "oc":
             return
         with tempfile.TemporaryDirectory() as td:
-            staged = HT.write_tree(OPENCODE_SURFACE, tree, Path(td) / "h")
-            OC.assert_jinja_safe(OC.compose_prompt(staged))
+            staged = HT.write_tree(opencode.SURFACE, tree, Path(td) / "h")
+            opencode.assert_jinja_safe(opencode.compose_prompt(staged))
 
     def preflight(self) -> None:
         """Check the benchmark checkout and executor before starting containers."""

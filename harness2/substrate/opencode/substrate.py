@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""OpencodeSubstrate: the OpenCode agent framework as a solver substrate.
+"""SubstrateImpl: the OpenCode agent framework as a solver substrate.
 
-Carries the c1..c8 surface (OPENCODE_SURFACE), the three install modes, the bun-run CLI
+Carries the c1..c8 surface (SURFACE), the three install modes, the bun-run CLI
 contract, and the one opencode event-stream trajectory renderer. The install modes are
 different delivery channels for the always-on text and are not interchangeable: changing the
 one a benchmark uses moves that benchmark's baseline.
@@ -33,13 +33,13 @@ import tempfile
 from pathlib import Path
 from typing import Mapping
 
-from .. import config
-from ..core import runmark as RM
-from ..core import tree as HT
-from ..core.tree import SurfaceSpec
-from .base import Install, Launcher, RunRequest
+from ... import config
+from ...core import runmark as RM
+from ...core import tree as HT
+from ...core.tree import SurfaceSpec
+from ..base import Install, Launcher, RunRequest
 
-OPENCODE_SURFACE = SurfaceSpec(
+SURFACE = SurfaceSpec(
     name="opencode",
     always_on=(
         "systemprompt.md",
@@ -145,7 +145,7 @@ def compose_prompt(staged: Path) -> str:
     """
     parts = [
         t
-        for f in OPENCODE_SURFACE.always_on
+        for f in SURFACE.always_on
         if (staged / f).is_file() and (t := (staged / f).read_text(errors="replace").strip())
     ]
     idx = _component_index(staged, "skills/*/SKILL.md")
@@ -170,7 +170,7 @@ def compose_prompt(staged: Path) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-class OpencodeSubstrate:
+class SubstrateImpl:
     """OpenCode behind the one Substrate interface; the launcher body is benchmark-supplied."""
 
     name = "oc"
@@ -179,17 +179,17 @@ class OpencodeSubstrate:
         self._launcher = launcher
 
     def surface(self) -> SurfaceSpec:
-        return OPENCODE_SURFACE
+        return SURFACE
 
     def materialise(self, tree_dir: Path, spec, ctx: Mapping[str, str]) -> Install:
         mode = spec.install_mode
         if mode not in _OC_INSTALL_MODES:
             raise ValueError(
                 f"install_mode {mode!r} is not an opencode mode; this substrate supports "
-                f"{_OC_INSTALL_MODES} (codex_root belongs to CodexSubstrate)"
+                f"{_OC_INSTALL_MODES} (codex_root belongs to the codex substrate)"
             )
         tree_dir = Path(tree_dir)
-        if not HT.is_tree(OPENCODE_SURFACE, tree_dir):
+        if not HT.is_tree(SURFACE, tree_dir):
             raise ValueError(
                 f"{tree_dir} is not an opencode harness tree (no always-on file present)"
             )
@@ -291,7 +291,7 @@ class OpencodeSubstrate:
     ) -> list[Path]:
         if self._launcher is None:
             raise RuntimeError(
-                "OpencodeSubstrate was constructed without a launcher body; the benchmark "
+                "SubstrateImpl was constructed without a launcher body; the benchmark "
                 "adapter must supply one (it owns runner choice, env wiring and read-back "
                 "locations)"
             )

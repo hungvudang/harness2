@@ -22,7 +22,7 @@ import subprocess
 
 from . import config
 from .install import PATCHES, missing_runners
-from .substrate.opencode import OpencodeSubstrate
+from .substrate import opencode
 
 
 def check(adapter, *, judge=False) -> list[str]:
@@ -49,7 +49,7 @@ def check(adapter, *, judge=False) -> list[str]:
     for validate in (
         lambda: config.validate_models(judge=judge),
         adapter.tasks,
-        OpencodeSubstrate().preflight,
+        opencode.SubstrateImpl().preflight,
         adapter.preflight,
     ):
         try:
