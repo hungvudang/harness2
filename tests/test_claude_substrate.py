@@ -41,11 +41,11 @@ class Surface(unittest.TestCase):
             "sub_agents/explorer/AGENT.md",
             "scripts/build_check.py",
         ):
-            self.assertTrue(HT.is_allowed(SURFACE, rel), rel)
+            self.assertTrue(HT.allowed(SURFACE, rel), rel)
 
     def test_off_surface_paths(self):
         for rel in (".claude/settings.local.json", "src/Main.java", "AGENTS.md", "../CLAUDE.md"):
-            self.assertFalse(HT.is_allowed(SURFACE, rel), rel)
+            self.assertFalse(HT.allowed(SURFACE, rel), rel)
 
     def test_prompt_text_names_claude_paths_only(self):
         text = P._st(SURFACE)

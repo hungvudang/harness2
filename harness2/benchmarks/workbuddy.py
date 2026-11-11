@@ -751,7 +751,7 @@ class WbAdapter:
     def _reusable(self, trial: Path, harness_dir: Path | None) -> bool:
         return (
             _trial_finished(trial)
-            and RM.is_complete(trial, harness_dir=harness_dir)
+            and RM.complete(trial, harness_dir=harness_dir)
             and self._identity_matches(trial)
         )
 
@@ -1003,7 +1003,7 @@ class WbAdapter:
 
 
 def _mark_matches(trial: Path, fingerprint: str) -> bool:
-    """runmark's is_complete against a known fingerprint string."""
+    """runmark's complete against a known fingerprint string."""
     m = RM.read_mark(Path(trial))
     return bool(m) and m.get("version") == RM.VERSION and m.get("harness") == fingerprint
 

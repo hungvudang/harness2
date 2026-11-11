@@ -56,7 +56,7 @@ def project_setup(repo: Path) -> dict[str, str]:
     skills = repo / ".claude" / "skills"
     for p in sorted(skills.rglob("*")):
         rel = f".claude/skills/{p.relative_to(skills)}"
-        if p.is_file() and HT.is_allowed(claude.SURFACE, rel):
+        if p.is_file() and HT.allowed(claude.SURFACE, rel):
             harness[rel] = p.read_text(encoding="utf-8")
     for p in sorted((repo / ".claude" / "agents").glob("*.md")):
         harness[f"sub_agents/{p.stem}/AGENT.md"] = p.read_text(encoding="utf-8")

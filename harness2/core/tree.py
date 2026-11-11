@@ -89,7 +89,7 @@ def normalize_rel(rel: str) -> str:
     return r.strip("/")
 
 
-def is_allowed(surface: SurfaceSpec, rel: str) -> bool:
+def allowed(surface: SurfaceSpec, rel: str) -> bool:
     """Whether this path is on the editable surface. A predicate: it never raises."""
     try:
         rel = normalize_rel(rel)
@@ -140,7 +140,7 @@ def read_tree(surface: SurfaceSpec, d: Path | str, *, rejected: list[str] | None
         rel = str(p.relative_to(d))
         if rel in stubs:
             continue
-        if not is_allowed(surface, rel):
+        if not allowed(surface, rel):
             if rejected is not None:
                 rejected.append(rel)
             continue
@@ -148,7 +148,7 @@ def read_tree(surface: SurfaceSpec, d: Path | str, *, rejected: list[str] | None
     return out
 
 
-def is_tree(surface: SurfaceSpec, d: Path | str) -> bool:
+def exists(surface: SurfaceSpec, d: Path | str) -> bool:
     d = Path(d)
     return d.is_dir() and any((d / a).is_file() for a in surface.always_on)
 
@@ -165,7 +165,7 @@ def write_tree(surface: SurfaceSpec, tree: Tree, dest: Path | str, *, stubs: boo
         if not p.is_file():
             continue
         rel = str(p.relative_to(dest))
-        if is_allowed(surface, rel) or rel in stub_set:
+        if allowed(surface, rel) or rel in stub_set:
             p.unlink()
     for a in surface.always_on:
         p = dest / a

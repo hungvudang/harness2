@@ -126,7 +126,7 @@ class SubstrateImpl:
                 f"has exactly one: 'codex_root'"
             )
         tree_dir = Path(tree_dir)
-        if not HT.is_tree(SURFACE, tree_dir):
+        if not HT.exists(SURFACE, tree_dir):
             raise ValueError(f"{tree_dir} is not a codex harness tree (no AGENTS.md)")
         staged = Path(tempfile.mkdtemp(prefix="adapt-cx-root-"))
         for entry in CODEX_ROOT_ENTRIES:

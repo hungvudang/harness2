@@ -193,7 +193,7 @@ def _selector_for(
     )
 
 
-def _tree_is_base(surface, base_tree: harness_tree.Tree, tree: harness_tree.Tree) -> bool:
+def _unchanged(surface, base_tree: harness_tree.Tree, tree: harness_tree.Tree) -> bool:
     chg = harness_tree.diff_summary(surface, base_tree, tree)
     return not (chg["added"] or chg["removed"] or chg["modified"])
 
@@ -219,7 +219,7 @@ def _restore_libraries(
             not lib
             or not label
             or not sel.get("ok")
-            or not library_store.has_experience(sel.get("experience"))
+            or not library_store.usable(sel.get("experience"))
         ):
             continue
         n = Namespace(adapter.spec.name, adapter.substrate.name, mode, k, seed, tag)
@@ -447,7 +447,7 @@ def _resume(
             artifacts_intact = getattr(adapter, "artifacts_intact", None)
             if callable(artifacts_intact) and not artifacts_intact(run_dir):
                 raise ValueError("adopted execution artifacts have changed")
-            if not harness_tree.is_tree(adapter.substrate.surface(), harness_dir):
+            if not harness_tree.exists(adapter.substrate.surface(), harness_dir):
                 raise ValueError("adopted harness is missing")
             fingerprint = sel.get("harness_fingerprint")
             if fingerprint and runmark.fingerprint(harness_dir) != fingerprint:
@@ -595,7 +595,7 @@ def _run_one_mode(
     )
 
     chosen_tree = r.trees.get(sel.chosen_label, base_tree)
-    chosen_tree_is_base = _tree_is_base(surface, base_tree, chosen_tree)
+    chosen_tree_is_base = _unchanged(surface, base_tree, chosen_tree)
     d["chosen_tree_is_base"] = chosen_tree_is_base
     if sel.chosen_label:
         d["harness_fingerprint"] = runmark.fingerprint(work_dir / "harnesses" / sel.chosen_label)
@@ -605,7 +605,7 @@ def _run_one_mode(
     chosen = candidates.get(sel.chosen_label)
     if sel.ok and chosen is not None and not chosen.delivered:
         res.errors.append(f"{mode}: selected run {chosen.run_id} produced no deliverable")
-    if mode_lib and sel.ok and library_store.has_experience(sel.experience):
+    if mode_lib and sel.ok and library_store.usable(sel.experience):
         mode_lib.add(
             task_id,
             chosen_tree,

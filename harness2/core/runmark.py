@@ -129,7 +129,7 @@ def read_mark(where: Path) -> dict | None:
         return None
 
 
-def is_complete(
+def complete(
     where: Path,
     *,
     harness_dir: Path | None = None,

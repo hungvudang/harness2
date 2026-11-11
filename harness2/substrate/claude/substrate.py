@@ -135,7 +135,7 @@ class SubstrateImpl:
                 f"substrate has exactly one: 'claude_root'"
             )
         tree_dir = Path(tree_dir)
-        if not HT.is_tree(SURFACE, tree_dir):
+        if not HT.exists(SURFACE, tree_dir):
             raise ValueError(f"{tree_dir} is not a Claude Code harness tree (no CLAUDE.md)")
         staged = Path(tempfile.mkdtemp(prefix="adapt-cc-root-"))
         for entry in CLAUDE_ROOT_ENTRIES:

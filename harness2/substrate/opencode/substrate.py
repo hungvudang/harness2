@@ -189,7 +189,7 @@ class SubstrateImpl:
                 f"{_OC_INSTALL_MODES} (codex_root belongs to the codex substrate)"
             )
         tree_dir = Path(tree_dir)
-        if not HT.is_tree(SURFACE, tree_dir):
+        if not HT.exists(SURFACE, tree_dir):
             raise ValueError(
                 f"{tree_dir} is not an opencode harness tree (no always-on file present)"
             )

@@ -566,7 +566,7 @@ _JUDGE_FAILURE_PREFIXES = (
 )
 
 
-def _has_events(p: Path) -> bool:
+def _eventful(p: Path) -> bool:
     """True when the file holds at least one JSON event line."""
     try:
         with Path(p).open(encoding="utf-8", errors="replace") as fh:
@@ -726,7 +726,7 @@ class JobBenchAdapter:
         out = self._out_dir(task_id, label)
         mark = self._traj_dir(task_id, label)
         inputs = RM.inputs_fingerprint(self.task_prompt(task_id), self.task_files(task_id))
-        reusable = RM.is_complete(mark, harness_dir=harness_dir, inputs=inputs)
+        reusable = RM.complete(mark, harness_dir=harness_dir, inputs=inputs)
         if reusable and self.artifacts_intact(out):
             out.mkdir(parents=True, exist_ok=True)
             return out
@@ -775,7 +775,7 @@ class JobBenchAdapter:
             and marker["output_fingerprint"] == self._output_fingerprint(run_dir)
             and (
                 self.delivered(run_dir)
-                or any(_has_events(path) for path in trajectory_dir.glob("*.jsonl"))
+                or any(_eventful(path) for path in trajectory_dir.glob("*.jsonl"))
             )
         )
 
@@ -857,17 +857,17 @@ class JobBenchAdapter:
 
     def _require_artifacts(self, task_id: str, label: str) -> Path:
         out, traj = self._out_dir(task_id, label), self._traj_dir(task_id, label)
-        has_out = out.is_dir() and any(out.iterdir())
-        if not has_out:
+        out_present = out.is_dir() and any(out.iterdir())
+        if not out_present:
             # A trajectory is not liveness: an attempt abandoned on a 401 or a rate-limit
             # storm still leaves .jsonl events behind. Both launchers already exit
             # non-zero here, so this only catches a launcher that forgot to; the rollout
             # stays UNMARKED so the next attempt re-rolls rather than being cached and
             # scored as a real zero.
-            has_traj = traj.is_dir() and any(_has_events(p) for p in traj.glob("*.jsonl"))
+            traj_present = traj.is_dir() and any(_eventful(p) for p in traj.glob("*.jsonl"))
             raise RuntimeError(
                 f"JobBench produced no output for {task_id} @ {label} "
-                f"({'trajectory without deliverables' if has_traj else 'dead agent'}: "
+                f"({'trajectory without deliverables' if traj_present else 'dead agent'}: "
                 f"proxy/auth/binary) -- left UNMARKED so the next attempt re-rolls "
                 f"instead of serving an empty rollout as evidence"
             )
@@ -957,7 +957,7 @@ class JobBenchAdapter:
 
     def base_harness(self) -> Path:
         base = OC_BASE_HARNESS if self.substrate.name == "oc" else CX_BASE_HARNESS
-        if not HT.is_tree(self.substrate.surface(), base):
+        if not HT.exists(self.substrate.surface(), base):
             raise FileNotFoundError(
                 f"JobBench base harness missing or not a {self.substrate.surface().name} "
                 f"tree: {base} — restore third_party/jb_runner/; an absent base would make "

@@ -606,7 +606,7 @@ class LabAdapter:
     ) -> Path:
         out = self._run_dir(run_id)
         inputs = RM.inputs_fingerprint(self.task_prompt(task_id), self.task_files(task_id))
-        reusable = RM.is_complete(out, harness_dir=harness_dir, inputs=inputs)
+        reusable = RM.complete(out, harness_dir=harness_dir, inputs=inputs)
         if reusable and self.artifacts_intact(out):
             self._check_tool_gate(out)
             return out

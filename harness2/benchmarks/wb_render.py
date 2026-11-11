@@ -113,7 +113,7 @@ _VERDICT_ANY = (
 _PROVENANCE_NAME_PREFIXES = ("judge_evidence",)
 
 
-def _is_verifier_authored(name: str, text: str | None, subset: str = "office") -> str | None:
+def _verifier_authored(name: str, text: str | None, subset: str = "office") -> str | None:
     """Reason string if this admitted file looks verifier-authored, else None; the scan
     runs only on the verifier-populated subsets (office, sec)."""
     if subset in ("code", "web"):
@@ -355,7 +355,7 @@ def render_report(trial_dir: Path | str, subset: str) -> tuple[dict[str, str], l
     out: dict[str, str] = {}
     withheld: list[str] = []
     for name, _size, body, scanned in entries:
-        reason = _is_verifier_authored(Path(name).name, body if scanned else None, subset)
+        reason = _verifier_authored(Path(name).name, body if scanned else None, subset)
         if reason:
             withheld.append(f"{name}: {reason}")
             continue
@@ -369,7 +369,7 @@ def flat_text(trial_dir: Path | str, subset: str) -> str:
     entries = [
         e
         for e in _entries(trial, subset)
-        if not _is_verifier_authored(Path(e[0]).name, e[2] if e[3] else None, subset)
+        if not _verifier_authored(Path(e[0]).name, e[2] if e[3] else None, subset)
     ]
     if not entries:
         return ""
@@ -384,7 +384,7 @@ def body_chars(trial_dir: Path | str, subset: str) -> int:
     return sum(
         len(body.strip())
         for name, _size, body, scanned in _entries(trial, subset)
-        if not _is_verifier_authored(Path(name).name, body if scanned else None, subset)
+        if not _verifier_authored(Path(name).name, body if scanned else None, subset)
     )
 
 
@@ -405,7 +405,7 @@ def raw_files(trial_dir: Path | str, subset: str) -> list[tuple[str, Path]]:
     withheld = {
         name
         for name, _s, body, scanned in _entries(trial, subset)
-        if _is_verifier_authored(Path(name).name, body if scanned else None, subset)
+        if _verifier_authored(Path(name).name, body if scanned else None, subset)
     }
     out: list[tuple[str, Path]] = []
     for f in sorted(root.rglob("*")):
@@ -413,7 +413,7 @@ def raw_files(trial_dir: Path | str, subset: str) -> list[tuple[str, Path]]:
             continue
         _admit(trial, f, subset)
         rel = f.relative_to(root).as_posix()
-        if rel in withheld or _is_verifier_authored(Path(rel).name, None, subset):
+        if rel in withheld or _verifier_authored(Path(rel).name, None, subset):
             continue
         out.append((rel, f))
     return out

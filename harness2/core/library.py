@@ -40,7 +40,7 @@ def slug(task_id: str) -> str:
     return task_id.replace("/", "__")
 
 
-def has_experience(experience: dict | None) -> bool:
+def usable(experience: dict | None) -> bool:
     return isinstance(experience, dict) and all(
         isinstance(experience.get(key), str) and experience[key].strip()
         for key in ("cue", "lesson", "evidence")
@@ -117,7 +117,7 @@ class Library:
 
         The tree is checked for grader verdicts before anything is written.
         """
-        if not has_experience(experience):
+        if not usable(experience):
             return None
         context.assert_tree_has_no_grader_verdicts(harness)
         context.assert_tree_has_no_grader_verdicts({"EXPERIENCE.md": str(experience) + why})

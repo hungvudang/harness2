@@ -86,7 +86,7 @@ def _anon_id(index: int) -> str:
     return out
 
 
-def _is_base(label: str) -> bool:
+def _base(label: str) -> bool:
     return label.startswith("base")
 
 
@@ -236,7 +236,7 @@ def _evidence_block(
 
 def _fallback(sel: Selection, pool: dict[str, RunView], pool_kind: str, exc: Exception) -> bool:
     """The neutral stand-in after a selector failure: a delivered base, else the first final."""
-    base = sorted(label for label in pool if _is_base(label))
+    base = sorted(label for label in pool if _base(label))
     if base:
         sel.chosen_label = base[0]
     elif pool_kind == "finals":
@@ -350,7 +350,7 @@ def run_selection(
             return sel
 
     sel.chosen_run_id = pool[sel.chosen_label].run_id
-    sel.chosen_is_base = _is_base(sel.chosen_label)
+    sel.chosen_is_base = _base(sel.chosen_label)
 
     _persist(sel, root, str(pool[sel.chosen_label].run_dir if sel.chosen_label in pool else ""))
 
@@ -389,7 +389,7 @@ def trivial_selection(
     sel.chosen_label = label
     sel.id_map = {"A": label}
     sel.chosen_run_id = pool[label].run_id
-    sel.chosen_is_base = _is_base(label)
+    sel.chosen_is_base = _base(label)
     sel.why = "trivial pool: single final at k=1; delivered without a selector session"
 
     root = Path(work_dir) / "selection" / f"{mode}{k}"
