@@ -14,7 +14,7 @@
 
 """Improver sessions with file access in an isolated context workspace.
 
-OpenCode reads output/answer.md or the final message; the Claude CLI reads the
+OpenCode reads output/answer.md or the final message; the Claude and Codex CLIs read the
 final message. Prompts use stdin, and empty replies raise an error.
 """
 
@@ -93,9 +93,15 @@ class Proposer:
             raise ValueError("Set HARNESS2_IMPROVER_MODEL before starting model sessions")
 
     def env(self) -> dict[str, str]:
+        if self.spec.kind == "codex_cli":
+            # Codex authenticates from its own login, or from an API key when one is set.
+            return config.scrub_env(keep=("OPENAI_API_KEY",))
         keep = () if self.spec.kind == "claude_cli" else config.provider_keys(self.spec.model)
         e = config.scrub_env(keep=keep)
-        if self.spec.kind == "claude_cli":
+        if self.spec.kind == "claude_cli" and not self.project:
+            # No Vertex project: the CLI uses its own login.
+            e["ANTHROPIC_MODEL"] = self.spec.model
+        elif self.spec.kind == "claude_cli":
             e.update(
                 {
                     "CLAUDE_CODE_USE_VERTEX": "1",
@@ -150,9 +156,7 @@ class Proposer:
                 if context_dir and Path(context_dir).is_dir():
                     shutil.copytree(context_dir, tmp / "context", dirs_exist_ok=True)
                 with _SEM if _SEM is not None else contextlib.nullcontext():
-                    text, cost, err = (
-                        self._claude_cli if self.spec.kind == "claude_cli" else self._opencode
-                    )(tmp, mission, system, wall)
+                    text, cost, err = self._session()(tmp, mission, system, wall)
                 spent_usd += cost
                 if not text.strip():
                     last = err or "empty reply"
@@ -198,14 +202,38 @@ class Proposer:
             cost_usd=spent_usd,
         )
 
+    def _session(self):
+        """Strategy: one session runner per channel."""
+        return {
+            "claude_cli": self._claude_cli,
+            "codex_cli": self._codex_cli,
+            "opencode": self._opencode,
+        }[self.spec.kind]
+
     def _claude_cli(
         self, cwd: Path, mission: str, system: str, wall: int
     ) -> tuple[str, float, str]:
         cli = shutil.which("claude") or "claude"
+        # Project settings only and no MCP: the operator's ~/.claude must not steer the
+        # improver. File tools are allowed without a prompt; nothing bypasses permissions.
         cmd = [
             cli,
-            "--dangerously-skip-permissions",
             "-p",
+            "--model",
+            self.spec.model,
+            "--setting-sources",
+            "project",
+            "--strict-mcp-config",
+            "--permission-mode",
+            "acceptEdits",
+            "--allowedTools",
+            "Read",
+            "Write",
+            "Edit",
+            "Glob",
+            "Grep",
+            "Bash(ls:*)",
+            "Bash(python3 -m py_compile:*)",
             "--output-format",
             "json",
             "--effort",
@@ -240,6 +268,45 @@ class Proposer:
         elif p.returncode != 0 and not text.strip():
             err = f"rc={p.returncode}: {(p.stderr or '')[-300:]}"
         return text, float(payload.get("total_cost_usd") or 0.0), err
+
+    def _codex_cli(self, cwd: Path, mission: str, system: str, wall: int) -> tuple[str, float, str]:
+        """`codex exec` sandboxed to the session directory. Codex reports tokens, not
+        dollars, so the cost is 0.0."""
+        answer = cwd / "output" / "answer.md"
+        answer.parent.mkdir(exist_ok=True)
+        prompt = (f"{system}\n\n---\n\n" if system else "") + mission
+        cmd = [
+            shutil.which("codex") or "codex",
+            "exec",
+            "--model",
+            self.spec.model,
+            "-c",
+            f'model_reasoning_effort="{self.spec.effort}"',
+            "--sandbox",
+            "workspace-write",
+            "--skip-git-repo-check",
+            "--ephemeral",
+            "--ignore-user-config",
+            "--ignore-rules",
+            "--cd",
+            str(cwd),
+            "--output-last-message",
+            str(answer),
+            "-",
+        ]
+        p = subprocess.run(
+            cmd,
+            input=prompt,
+            cwd=cwd,
+            env=self.env(),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=wall,
+        )
+        if answer.is_file() and answer.read_text(errors="replace").strip():
+            return answer.read_text(errors="replace"), 0.0, ""
+        return "", 0.0, f"rc={p.returncode}: {(p.stderr or p.stdout or 'empty reply')[-300:]}"
 
     def _opencode(self, cwd: Path, mission: str, system: str, wall: int) -> tuple[str, float, str]:
         (cwd / "MISSION.md").write_text(

@@ -160,12 +160,20 @@ settings only (`--setting-sources project`) and no MCP servers
 Permissions are an allow-list: file tools plus the Bash command prefixes listed
 in `bench.toml`; nothing runs with permissions bypassed.
 
-The improver stays on its own channel. For an OpenAI improver, set
-`HARNESS2_IMPROVER_MODEL=openai/<model>` and `OPENAI_API_KEY`; setup installs only
-OpenCode for that channel:
+The improver runs on its own channel, chosen with `HARNESS2_IMPROVER_CHANNEL`:
+
+| channel | `HARNESS2_IMPROVER_MODEL` | needs |
+|---|---|---|
+| `codex_cli` | bare OpenAI id, e.g. `gpt-5.5` | `codex` CLI, logged in or `OPENAI_API_KEY` |
+| `claude_cli` | bare Claude id or alias, e.g. `opus` | `claude` CLI, logged in (Vertex when `GOOGLE_CLOUD_PROJECT` is set) |
+| `opencode` (default) | `provider/model`, e.g. `openai/gpt-5.5` | `harness2-setup local` and the provider key |
+
+Both CLI channels run without the operator's user config (`--setting-sources project`
+for Claude; `--ignore-user-config --ignore-rules` for Codex) and edit files only inside
+the session directory. Codex reports tokens, not dollars, so its sessions cost 0.0 in
+the ledger.
 
 ```bash
-harness2-setup local
 harness2-check --bench local --substrate cc
 ```
 

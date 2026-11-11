@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 from pathlib import Path
 
 from .. import config
@@ -24,6 +25,30 @@ log = logging.getLogger(__name__)
 
 DIFF_CAP = 120_000
 TRAJECTORY_CAP = 200_000
+
+
+def _cli_problems(cli: str) -> list[str]:
+    if shutil.which(cli):
+        return []
+    return [f"`{cli}` is not on PATH; install it and log in once"]
+
+
+def _opencode_problems(model: str) -> list[str]:
+    problems = []
+    if not (config.OPENCODE_DIR / "node_modules").is_dir() or not config.BUN.exists():
+        problems.append("OpenCode is not installed; run harness2-setup local")
+    for key in config.provider_keys(model)[:1]:
+        if not config.env(key):
+            problems.append(f"{key} is required for improver model {model}")
+    return problems
+
+
+# Strategy: what each improver channel needs before a run.
+_CHANNEL_PROBLEMS = {
+    "claude_cli": lambda model: _cli_problems("claude"),
+    "codex_cli": lambda model: _cli_problems("codex"),
+    "opencode": _opencode_problems,
+}
 
 
 class LocalAdapter:
@@ -134,15 +159,9 @@ class LocalAdapter:
                 problems.append(str(exc))
         channel = self.spec.channels["proposer"]
         if not channel.model:
-            problems.append("Set HARNESS2_IMPROVER_MODEL (e.g. openai/gpt-5.5) for the improver")
-        if channel.kind != "opencode":
+            problems.append("Set HARNESS2_IMPROVER_MODEL for the improver (see docs/SETUP.md)")
             return problems
-        if not (config.OPENCODE_DIR / "node_modules").is_dir() or not config.BUN.exists():
-            problems.append("OpenCode is not installed; run harness2-setup local")
-        for key in config.provider_keys(channel.model)[:1]:
-            if not config.env(key):
-                problems.append(f"{key} is required for improver model {channel.model}")
-        return problems
+        return problems + _CHANNEL_PROBLEMS[channel.kind](channel.model)
 
     def score(self, run_dir: Path, task_id: str) -> dict | None:
         verdict = self._judge.verdict(Path(run_dir), task_id)
