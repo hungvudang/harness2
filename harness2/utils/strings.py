@@ -7,6 +7,10 @@ def blank(value: object) -> bool:
     return not isinstance(value, str) or not value.strip()
 
 
+def prefixed(value: object, *prefixes: str) -> bool:
+    return isinstance(value, str) and value.startswith(prefixes)
+
+
 def clip(value: object, limit: int, *, reason: str = "truncated") -> str:
     """Keeps the first `limit` chars and says how many were dropped, so a reader of the
     clipped text never mistakes it for the whole. NUL bytes are removed: they break

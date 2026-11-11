@@ -23,6 +23,7 @@ import subprocess
 from . import config
 from .install import PATCHES, missing_runners
 from .substrate import opencode
+from .utils import strings
 
 
 def check(adapter, *, judge=False) -> list[str]:
@@ -80,8 +81,9 @@ def check(adapter, *, judge=False) -> list[str]:
         errors.append(f"OpenCode dependencies missing; run harness2-setup {bench}")
 
     if any(
-        m.startswith("google-vertex") for m in (config.SOLVER_MODEL_OC, config.IMPROVER_MODEL)
-    ) or (judge and (bench == "wb" or config.JUDGE_MODEL.startswith(("claude", "gemini")))):
+        strings.prefixed(m, "google-vertex")
+        for m in (config.SOLVER_MODEL_OC, config.IMPROVER_MODEL)
+    ) or (judge and (bench == "wb" or strings.prefixed(config.JUDGE_MODEL, "claude", "gemini"))):
         probe(
             "Google Application Default Credentials",
             ["gcloud", "auth", "application-default", "print-access-token"],
@@ -111,7 +113,7 @@ def check(adapter, *, judge=False) -> list[str]:
         if (
             config.JUDGE_MODEL
             and not config.JB_JUDGE_API_KEY
-            and not config.JUDGE_MODEL.startswith("gemini")
+            and not strings.prefixed(config.JUDGE_MODEL, "gemini")
         ):
             errors.append(
                 "A non-Gemini JobBench judge requires HARNESS2_JUDGE_BASE_URL and HARNESS2_JUDGE_API_KEY"

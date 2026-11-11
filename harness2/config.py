@@ -21,6 +21,8 @@ import sys
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
+from .utils import strings
+
 PKG = Path(__file__).resolve().parent
 ROOT = PKG.parent if (PKG.parent / "pyproject.toml").is_file() else Path.cwd()
 THIRD_PARTY = ROOT / "third_party"
@@ -134,13 +136,13 @@ OPENCODE_DIR = DEPENDENCIES / "opencode"
 BUN = DEPENDENCIES / "tools" / "node_modules" / ".bin" / "bun"
 LAB_PYTHON = lab_repo() / ".venv" / "bin" / "python"
 LAB_JUDGE_MODEL = (
-    "vertex/" + JUDGE_MODEL if JUDGE_MODEL.startswith(("claude", "gemini")) else JUDGE_MODEL
+    "vertex/" + JUDGE_MODEL if strings.prefixed(JUDGE_MODEL, "claude", "gemini") else JUDGE_MODEL
 )
 LAB_DELIV_CAP = 60000
 JB_JUDGE_PYTHON = jb_repo() / ".venv" / "bin" / "python"
 JB_JUDGE_MODEL = (
     "google/" + JUDGE_MODEL
-    if JUDGE_MODEL.startswith("gemini") and not env("HARNESS2_JUDGE_BASE_URL")
+    if strings.prefixed(JUDGE_MODEL, "gemini") and not env("HARNESS2_JUDGE_BASE_URL")
     else JUDGE_MODEL
 )
 _vertex_host = (
@@ -185,7 +187,7 @@ def validate_models(*, judge: bool = False) -> None:
     require("HARNESS2_SOLVER_MODEL", needed_by="executor rollouts")
     if "/" not in SOLVER_MODEL_OC or "/" not in IMPROVER_MODEL:
         raise ConfigError("Executor and improver models must use OpenCode's provider/model syntax")
-    if any(m.startswith("google-vertex") for m in (SOLVER_MODEL_OC, IMPROVER_MODEL)):
+    if any(strings.prefixed(m, "google-vertex") for m in (SOLVER_MODEL_OC, IMPROVER_MODEL)):
         if not VERTEX_PROJECT:
             raise ConfigError("Set GOOGLE_CLOUD_PROJECT for Vertex AI")
     if judge:

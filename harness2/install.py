@@ -26,6 +26,7 @@ import tomllib
 from pathlib import Path
 
 from . import config
+from .utils import strings
 
 PATCHES = {
     "opencode": "opencode-compat.diff",
@@ -153,8 +154,8 @@ def workbuddy_models(*, dry_run=False):
     solver = config.SOLVER_MODEL_OC.removeprefix("google-vertex/")
     judge = config.JUDGE_MODEL
     problem = ""
-    if not config.SOLVER_MODEL_OC.startswith("google-vertex/gemini") or not judge.startswith(
-        "gemini"
+    if not strings.prefixed(config.SOLVER_MODEL_OC, "google-vertex/gemini") or not strings.prefixed(
+        judge, "gemini"
     ):
         problem = (
             "WorkBuddy setup requires a google-vertex/gemini... executor "
