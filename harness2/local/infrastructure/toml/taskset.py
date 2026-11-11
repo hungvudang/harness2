@@ -66,6 +66,7 @@ class TaskSetImpl:
                 effort=str(doc.get("effort") or ""),
                 timeout=int(doc.get("timeout") or 3600),
                 max_turns=int(doc.get("max_turns") or 0),
+                judge_model=str(doc.get("judge_model") or "opus"),
             )
         except ValueError as exc:
             raise InvalidTaskSet(f"{path}: {exc}") from exc
@@ -84,6 +85,8 @@ class TaskSetImpl:
                 instruction=instruction.read_text(encoding="utf-8").strip(),
                 criteria=_strings(doc, "criteria", path),
                 verify_timeout=int(doc.get("verify_timeout") or 1800),
+                reference=str(doc.get("reference", "")),
+                rubric=_strings(doc, "rubric", path),
             )
         except ValueError as exc:
             raise InvalidTaskSet(f"{path}: {exc}") from exc
@@ -97,16 +100,28 @@ class TaskSetImpl:
             raise InvalidTaskSet(f"no tasks under {self.root}; add <task-id>/{TASK_FILE}")
         return found
 
+    def reference(self, task: Task) -> str:
+        if not task.reference:
+            return ""
+        # Against the first parent, so a merge commit yields the whole merged change.
+        return subprocess.run(
+            ["git", "-C", str(self.project.repo), "diff", f"{task.reference}^1", task.reference],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+
     def missing_commits(self) -> list[str]:
         problems = []
         for task_id in self.domains():
-            commit = self.task(task_id).commit
-            probe = subprocess.run(
-                ["git", "-C", str(self.project.repo), "cat-file", "-e", f"{commit}^{{commit}}"],
-                capture_output=True,
-            )
-            if probe.returncode:
-                problems.append(f"{task_id}: commit {commit} is not in {self.project.repo}")
+            task = self.task(task_id)
+            for commit in filter(None, (task.commit, task.reference)):
+                probe = subprocess.run(
+                    ["git", "-C", str(self.project.repo), "cat-file", "-e", f"{commit}^{{commit}}"],
+                    capture_output=True,
+                )
+                if probe.returncode:
+                    problems.append(f"{task_id}: commit {commit} is not in {self.project.repo}")
         if problems:
             log.error("task set %s: %s", self.root, "; ".join(problems))
         return problems

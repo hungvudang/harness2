@@ -30,7 +30,7 @@ class Rollout:
 
 @dataclass(frozen=True)
 class Criterion:
-    command: str
+    text: str
     met: bool
     output: str = ""
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from ..domain.rollout import Rollout, Verdict
-from .ports import Agent, Runs, TaskSet, Workspaces
+from .ports import Agent, Reviewer, Runs, TaskSet, Workspaces
 
 log = logging.getLogger(__name__)
 
@@ -62,16 +62,24 @@ class Rollouts:
 
 
 class Judge:
-    def __init__(self, taskset: TaskSet, workspaces: Workspaces, runs: Runs):
+    def __init__(self, taskset: TaskSet, workspaces: Workspaces, runs: Runs, reviewer: Reviewer):
         self._taskset = taskset
         self._workspaces = workspaces
         self._runs = runs
+        self._reviewer = reviewer
 
     def verdict(self, run_dir: Path, task_id: str) -> Verdict | None:
-        """None when the task has no criteria or the workspace is gone: ungraded, not zero."""
+        """None when the task has nothing to judge or the workspace is gone: ungraded, not zero.
+
+        A reviewer failure raises: core's judge records it as ungraded, never as a zero.
+        """
         task = self._taskset.task(task_id)
         path = self._runs.workspace(run_dir)
-        if not task.criteria or not path.is_dir():
+        if not task.judged or not path.is_dir():
             log.warning("rollout %s of %s cannot be judged", run_dir, task_id)
             return None
-        return Verdict(self._workspaces(path).verify(task.criteria, task.verify_timeout))
+        criteria = self._workspaces(path).verify(task.criteria, task.verify_timeout)
+        if task.rubric:
+            reference = self._taskset.reference(task)
+            criteria += self._reviewer.review(task, self._runs.diff(run_dir), reference)
+        return Verdict(criteria)

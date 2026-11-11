@@ -18,6 +18,16 @@ class TaskSet(Protocol):
 
     def missing_commits(self) -> list[str]: ...
 
+    def reference(self, task: Task) -> str:
+        """The diff of the commit that once did the task; empty without one."""
+        ...
+
+
+class Reviewer(Protocol):
+    """Judges a diff against a task's rubric; one criterion per rubric item, in order."""
+
+    def review(self, task: Task, diff: str, reference: str) -> tuple[Criterion, ...]: ...
+
 
 class Workspace(Protocol):
     """One rollout's sandbox; its diff since the seal is the agent's work."""

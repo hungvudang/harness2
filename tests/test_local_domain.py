@@ -66,6 +66,21 @@ class TestTask:
             with pytest.raises(ValueError, match="verify_timeout"):
                 _task(verify_timeout=-5)
 
+        def test_rubric_without_reference(self):
+            with pytest.raises(ValueError, match="reference"):
+                _task(rubric=("adds a job",))
+
+        def test_blank_rubric_item(self):
+            with pytest.raises(ValueError, match="rubric"):
+                _task(reference="abc", rubric=(" ",))
+
+    class TestJudged:
+        def test_nothing_to_judge(self):
+            assert not _task().judged
+
+        def test_rubric_only(self):
+            assert _task(reference="abc", rubric=("adds a job",)).judged
+
 
 class TestOutcome:
     class TestFailed:
@@ -90,7 +105,7 @@ class TestVerdict:
             verdict = Verdict((Criterion("build", True), Criterion("lint", False, "E501")))
             score = verdict.score()
             assert (score["n_passed"], score["n_criteria"]) == (1, 2)
-            assert score["criteria"][1] == {"command": "lint", "met": False, "output": "E501"}
+            assert score["criteria"][1] == {"text": "lint", "met": False, "output": "E501"}
 
         def test_all_met(self):
             assert Verdict((Criterion("build", True),)).met == 1

@@ -12,12 +12,23 @@ import pytest
 
 from harness2.local.application.rollouts import Judge, Rollouts
 from harness2.local.domain.errors import InvalidTaskSet
-from harness2.local.domain.rollout import Outcome
+from harness2.local.domain.rollout import Criterion, Outcome
 from harness2.local.infrastructure.fs.runs import RunsImpl
 from harness2.local.infrastructure.git.workspace import WorkspaceImpl
 from harness2.local.infrastructure.toml.taskset import TaskSetImpl
 
 pytestmark = pytest.mark.skipif(not shutil.which("git"), reason="git required")
+
+
+class ScriptedReviewer:
+    """Meets the first rubric item only, and keeps what it was shown."""
+
+    def __init__(self):
+        self.seen = {}
+
+    def review(self, task, diff, reference):
+        self.seen = {"diff": diff, "reference": reference}
+        return tuple(Criterion(item, i == 0, "scripted") for i, item in enumerate(task.rubric))
 
 
 class ScriptedAgent:
@@ -53,6 +64,14 @@ def world():
         check=True,
     )
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    (repo / "Feature.java").write_text("class Feature { /* reference */ }\n")
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "feature"],
+        cwd=repo,
+        check=True,
+    )
+    reference = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
     tasks = root / "tasks"
     (tasks / "t1").mkdir(parents=True)
     (tasks / "bench.toml").write_text(
@@ -60,6 +79,7 @@ def world():
     )
     (tasks / "t1" / "task.toml").write_text(
         f'commit = "{commit}"\ndomain = "core"\ncriteria = ["test -f Feature.java", "false"]\n'
+        f'reference = "{reference}"\nrubric = ["adds Feature", "documents Feature"]\n'
     )
     (tasks / "t1" / "instruction.md").write_text("Add Feature.java.\n")
     harness = root / "harness"
@@ -89,12 +109,13 @@ class TestTaskSet:
 
 class TestRollouts:
     def _wire(self, world):
+        self.reviewer = ScriptedReviewer()
         taskset = TaskSetImpl(world["tasks"])
         runs = RunsImpl(world["root"] / "runs")
         agent = ScriptedAgent()
         return (
             Rollouts(taskset, agent, WorkspaceImpl, runs),
-            Judge(taskset, WorkspaceImpl, runs),
+            Judge(taskset, WorkspaceImpl, runs, self.reviewer),
             runs,
             agent,
         )
@@ -125,7 +146,14 @@ class TestRollouts:
         rollouts, judge, _, _ = self._wire(world)
         run_dir = rollouts.run("t1", world["harness"], "r1", timeout=60)
         verdict = judge.verdict(run_dir, "t1")
-        assert (verdict.met, verdict.total) == (1, 2)
+        assert (verdict.met, verdict.total) == (2, 4)
+
+    def test_reviewer_sees_both_diffs(self, world):
+        rollouts, judge, _, _ = self._wire(world)
+        run_dir = rollouts.run("t1", world["harness"], "r1", timeout=60)
+        judge.verdict(run_dir, "t1")
+        assert "class Feature {}" in self.reviewer.seen["diff"]
+        assert "/* reference */" in self.reviewer.seen["reference"]
 
     def test_ungraded_without_workspace(self, world):
         _, judge, runs, _ = self._wire(world)

@@ -34,11 +34,13 @@ class Project:
     effort: str = ""
     timeout: int = 3600
     max_turns: int = 0
+    judge_model: str = "opus"
 
     def __post_init__(self) -> None:
         _text(self.name, "name")
         _text(self.work, "work")
         _text(self.model, "model")
+        _text(self.judge_model, "judge_model")
         _texts(self.commands, "commands")
         _positive(self.timeout, "timeout")
         if not numbers.natural(self.max_turns):
@@ -53,6 +55,8 @@ class Task:
     instruction: str
     criteria: tuple[str, ...] = ()
     verify_timeout: int = 1800
+    reference: str = ""
+    rubric: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _text(self.id, "id")
@@ -61,3 +65,10 @@ class Task:
         _text(self.instruction, "instruction")
         _texts(self.criteria, "criteria")
         _positive(self.verify_timeout, "verify_timeout")
+        _texts(self.rubric, "rubric")
+        if self.rubric and strings.blank(self.reference):
+            raise ValueError("`rubric` needs `reference`: the commit that once did this work")
+
+    @property
+    def judged(self) -> bool:
+        return bool(self.criteria or self.rubric)

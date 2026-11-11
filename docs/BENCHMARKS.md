@@ -149,6 +149,7 @@ repo = "~/code/my-service"
 work = "implement backend changes in a Gradle multi-module service"
 domain_word = "module"
 model = "sonnet"
+judge_model = "opus"
 commands = ["./gradlew", "git status", "git diff", "git log"]
 ```
 
@@ -157,12 +158,23 @@ commands = ["./gradlew", "git status", "git diff", "git log"]
 commit = "<sha the work started from>"
 domain = "order"
 criteria = ["./gradlew clean build"]
+reference = "<sha of the change that did this work>"
+rubric = [
+  "the job runs on the day before the ex-date, taken from the trading calendar",
+  "re-running the job does not duplicate records",
+]
 ```
 
 `instruction.md` is the request as a developer would give it: the ticket text,
 without notes written after the work was done. `criteria` are shell commands that
 must exit 0 in the finished workspace; each one is a criterion for
 `harness2-judge` and is never shown to the improver.
+
+A build alone rarely tells two harnesses apart. `rubric` adds requirements that a
+reviewer model (`judge_model`, default `opus`) checks against the agent's diff, with
+the `reference` change shown as one acceptable design rather than an answer key.
+Each rubric item counts as one criterion next to the commands. The reviewer runs
+with no tools in an empty directory, so it judges the diffs and nothing else.
 
 ```bash
 harness2-check --bench local --substrate cc
@@ -175,6 +187,6 @@ Outputs are under `runs/local/<name>/`.
 
 The code lives in `harness2/local/`, layered so each part depends only inward:
 `domain/` (Project, Task, Rollout, Verdict and their invariants) <- `application/`
-(the `TaskSet`, `Workspace`, `Agent` and `Runs` ports, and the `Rollouts` and `Judge`
+(the `TaskSet`, `Workspace`, `Agent`, `Reviewer` and `Runs` ports, and the `Rollouts` and `Judge`
 use cases) <- `infrastructure/` (`toml`, `git`, `claude` and `fs` implementations)
 <- `adapter.py`, which wires them and exposes the shared benchmark adapter.

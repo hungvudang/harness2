@@ -17,6 +17,7 @@ from ..utils import strings
 from .application.rollouts import Judge, Rollouts
 from .domain.errors import InvalidTaskSet
 from .infrastructure.claude.agent import AgentImpl, project_setup
+from .infrastructure.claude.reviewer import ReviewerImpl
 from .infrastructure.fs.runs import DIFF_FILE, RunsImpl
 from .infrastructure.git.workspace import WorkspaceImpl
 from .infrastructure.toml.taskset import TaskSetImpl
@@ -90,7 +91,9 @@ class LocalAdapter:
             WorkspaceImpl,
             self._runs,
         )
-        self._judge = Judge(self._taskset, WorkspaceImpl, self._runs)
+        self._judge = Judge(
+            self._taskset, WorkspaceImpl, self._runs, ReviewerImpl(self.project.judge_model)
+        )
 
     @property
     def executor_model(self) -> str:
