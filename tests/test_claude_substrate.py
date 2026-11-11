@@ -114,6 +114,13 @@ class Argv(unittest.TestCase):
         self.assertNotIn("--dangerously-skip-permissions", argv)
         self.assertNotIn("Bash", argv)
 
+    def test_states_bash_limits(self):
+        argv = SubstrateImpl().exec_argv(Path("/ws"), "sonnet", bash_prefixes=["./gradlew"])
+        self.assertIn("`./gradlew`", argv[argv.index("--append-system-prompt") + 1])
+
+    def test_no_limits_without_bash(self):
+        self.assertNotIn("--append-system-prompt", SubstrateImpl().exec_argv(Path("/ws"), "sonnet"))
+
     def test_empty_bash_prefix(self):
         with self.assertRaises(ValueError):
             bash_rules([" "])

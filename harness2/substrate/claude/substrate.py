@@ -105,6 +105,18 @@ def bash_rules(prefixes: Iterable[str]) -> list[str]:
     return rules
 
 
+def sandbox_rules(prefixes: Iterable[str]) -> str:
+    """The Bash limits, stated up front so no harness has to rediscover them by failing."""
+    listed = ", ".join(f"`{prefix}`" for prefix in prefixes)
+    return (
+        f"Bash in this session runs only commands that start with one of: {listed}. Run one "
+        "such command per call. Anything else is rejected without running, including shell "
+        "variables, heredocs, `cd ... &&` chains, `sed -i`, and pipes into commands outside "
+        "the list. Create and change files with Write and Edit; read and search with Read, "
+        "Glob and Grep."
+    )
+
+
 def agent_file(name: str, body: str) -> str:
     """Claude Code skips an agent file without `name:`, so one is always written."""
     m = _FRONTMATTER.match(body)
@@ -204,6 +216,9 @@ class SubstrateImpl:
             *TOOLS,
             *bash_rules(bash_prefixes),
         ]
+        prefixes = list(bash_prefixes)
+        if prefixes:
+            cmd += ["--append-system-prompt", sandbox_rules(prefixes)]
         if effort:
             cmd += ["--effort", effort]
         if max_turns > 0:
