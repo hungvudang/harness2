@@ -92,7 +92,7 @@ class MarkerInputTests(unittest.TestCase):
         self.run_dir = Path(temporary.name) / "run"
 
     def test_marker_refuses_reuse_under_changed_inputs(self):
-        runmark.mark_complete(self.run_dir, run_id="r1", inputs="aaaa")
+        runmark.mark(self.run_dir, run_id="r1", inputs="aaaa")
         self.assertTrue(runmark.complete(self.run_dir, inputs="aaaa"))
         self.assertFalse(runmark.complete(self.run_dir, inputs="bbbb"))
         self.assertEqual(runmark.why_not(self.run_dir, inputs="aaaa"), "reusable")
@@ -100,14 +100,14 @@ class MarkerInputTests(unittest.TestCase):
 
     def test_marker_without_inputs_stays_reusable(self):
         """Markers written before input identity existed must not invalidate on upgrade."""
-        runmark.mark_complete(self.run_dir, run_id="r1")
+        runmark.mark(self.run_dir, run_id="r1")
         marker = json.loads((self.run_dir / runmark.MARK).read_text())
         self.assertNotIn("inputs", marker)
         self.assertTrue(runmark.complete(self.run_dir, inputs="aaaa"))
         self.assertEqual(runmark.why_not(self.run_dir, inputs="aaaa"), "reusable")
 
     def test_caller_without_inputs_keeps_previous_behaviour(self):
-        runmark.mark_complete(self.run_dir, run_id="r1", inputs="aaaa")
+        runmark.mark(self.run_dir, run_id="r1", inputs="aaaa")
         self.assertTrue(runmark.complete(self.run_dir))
         self.assertEqual(runmark.why_not(self.run_dir), "reusable")
 

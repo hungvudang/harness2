@@ -205,7 +205,7 @@ class ProposerFailureTests(unittest.TestCase):
                     label, "invalid edit", True, cost_usd=0.5, attempts=1, workspace=workspace
                 )
 
-        fallback = tree.read_tree(self.adapter.substrate.surface(), self.adapter.base_harness())
+        fallback = tree.read(self.adapter.substrate.surface(), self.adapter.base_harness())
         stage = recursion._run_stage(
             label="inv1",
             dim="INV",

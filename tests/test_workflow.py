@@ -24,7 +24,7 @@ from harness2 import config
 from harness2.core import context, judge, recursion, schedule, tree
 from harness2.core.library import Library
 from harness2.core.proposer import Proposer, ProposerError, Reply
-from harness2.core.spec import resolve_channel_model
+from harness2.core.spec import resolve_channel
 from harness2.demo import BASE_SCRIPT, DemoAdapter, DemoProposer
 
 
@@ -49,12 +49,12 @@ class WorkflowTests(unittest.TestCase):
 
     def test_recursion_budget_and_resume(self):
         with patch.dict(config.PROPOSER_MODEL_BY_CHANNEL, {"opencode": "", "claude_cli": ""}):
-            unresolved = resolve_channel_model(None, None)
+            unresolved = resolve_channel(None, None)
             self.assertEqual(unresolved.model, "")
             with self.assertRaises(ValueError):
                 Proposer(unresolved)
             with self.assertRaises(ValueError):
-                resolve_channel_model("opencode", "")
+                resolve_channel("opencode", "")
         for k in (1, 2):
             with self.subTest(k=k):
                 result = self.run_stream(k)
@@ -177,7 +177,7 @@ class WorkflowTests(unittest.TestCase):
             ctx_dir=self.root / "context",
             task_id="ledger-1",
             rollouts=[],
-            fallback=tree.read_tree(self.adapter.substrate.surface(), self.adapter.base_harness()),
+            fallback=tree.read(self.adapter.substrate.surface(), self.adapter.base_harness()),
             harness_dir=self.adapter.base_harness(),
             library_dir=None,
         )

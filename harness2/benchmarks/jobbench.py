@@ -36,7 +36,7 @@ from pathlib import Path
 from .. import config
 from ..core import runmark as RM
 from ..core import tree as HT
-from ..core.spec import BenchPrompts, BenchSpec, resolve_channel_model
+from ..core.spec import BenchPrompts, BenchSpec, resolve_channel
 from ..install import codex_config_error
 from ..substrate import codex, opencode
 from ..substrate.base import Install, RunRequest
@@ -362,7 +362,7 @@ JOBBENCH_PROFESSIONS: dict[str, str] = {
 }
 
 
-def jobbench_prompts(*, domain: str = "", profession: str = "") -> BenchPrompts:
+def prompts(*, domain: str = "", profession: str = "") -> BenchPrompts:
     """JobBench-wide profile plus SOC-style domain and occupation overlays."""
     return _with_guidance(
         JOBBENCH_BASE,
@@ -499,19 +499,19 @@ _DEFAULT_TIMEOUT = {"oc": 2400, "cx": 3600}
 
 
 def _channels() -> dict:
-    """Improver channel, resolved through core.spec.resolve_channel_model."""
-    ch = resolve_channel_model(None, None, effort="high")
+    """Improver channel, resolved through core.spec.resolve_channel."""
+    ch = resolve_channel(None, None, effort="high")
     return {"proposer": ch, "selector": ch}
 
 
-def make_spec(substrate: str) -> BenchSpec:
+def spec(substrate: str) -> BenchSpec:
     if substrate not in _INSTALL_MODE:
         raise ValueError(f"JobBench substrate must be 'oc' or 'cx', got {substrate!r}")
     return BenchSpec(
         name="jb",
         runs_root=config.RUNS / "jb",
         install_mode=_INSTALL_MODE[substrate],
-        prompts=jobbench_prompts(),
+        prompts=prompts(),
         channels=_channels(),
         domain_word="profession",
         leak_globs=("RUBRICS.json", "eval_result/**", "expected/**", "reference/**"),
@@ -635,8 +635,8 @@ class JobBenchAdapter:
         split_file: Path | None = None,
     ):
         self.split_file = split_file
-        self.spec = make_spec(substrate)
-        launcher = self._launch_opencode if substrate == "oc" else self._launch_codex
+        self.spec = spec(substrate)
+        launcher = self._launch_oc if substrate == "oc" else self._launch_cx
         self.substrate = (
             opencode.SubstrateImpl(launcher=launcher)
             if substrate == "oc"
@@ -655,7 +655,7 @@ class JobBenchAdapter:
         return sorted(set(discover("jb").values()))
 
     def prompts_for(self, task_id: str) -> BenchPrompts:
-        return jobbench_prompts(domain=self.domain_of(task_id), profession=task_id.split("/", 1)[0])
+        return prompts(domain=self.domain_of(task_id), profession=task_id.split("/", 1)[0])
 
     def task_prompt(self, task_id: str) -> str:
         """TASK_INSTRUCTIONS.txt, as the agent received it."""
@@ -754,7 +754,7 @@ class JobBenchAdapter:
         finally:
             shutil.rmtree(install.staging_dir, ignore_errors=True)
         out.mkdir(parents=True, exist_ok=True)
-        RM.mark_complete(
+        RM.mark(
             mark,
             run_id=run_id,
             harness_dir=harness_dir,
@@ -769,7 +769,7 @@ class JobBenchAdapter:
     def artifacts_intact(self, run_dir: Path) -> bool:
         task_id, label = self._task_and_label(run_dir)
         trajectory_dir = self._traj_dir(task_id, label)
-        marker = RM.read_mark(trajectory_dir) or {}
+        marker = RM.read(trajectory_dir) or {}
         return (
             "output_fingerprint" in marker
             and marker["output_fingerprint"] == self._output_fingerprint(run_dir)
@@ -790,7 +790,7 @@ class JobBenchAdapter:
             )
         return req.task_ref, req.run_ids[0].replace("/", "__"), int(req.timeout)
 
-    def _launch_opencode(self, req: RunRequest, install: Install) -> list[Path]:
+    def _launch_oc(self, req: RunRequest, install: Install) -> list[Path]:
         task_id, label, t = self._launch_common(req)
         self.substrate.preflight()
         render_dir = Path(tempfile.mkdtemp(prefix=f"hrender_{label}_"))
@@ -812,7 +812,7 @@ class JobBenchAdapter:
         self._run_runner(OC_RUNNER, env, wall=2 * t + 600, label=label)
         return [self._require_artifacts(task_id, label)]
 
-    def _launch_codex(self, req: RunRequest, install: Install) -> list[Path]:
+    def _launch_cx(self, req: RunRequest, install: Install) -> list[Path]:
         task_id, label, t = self._launch_common(req)
         self.substrate.preflight()
         codex_home = config.CODEX_HOME_DIR
@@ -830,7 +830,7 @@ class JobBenchAdapter:
                 "BENCHMARK_MODELS": config.SOLVER_MODEL_CX,
                 "MAX_CONCURRENT_PER_MODEL": "1",
                 "TIMEOUT_PER_TASK": str(t),
-                "VERTEX_PROXY_KEY": config.VERTEX_PROXY_KEY,
+                "VERTEX_PROXY_KEY": config.CODEX_API_KEY,
             }
         )
         self._run_runner(CX_RUNNER, env, wall=t + 600, label=label)
@@ -1172,8 +1172,8 @@ class JobBenchAdapter:
 
 __all__ = [
     "JobBenchAdapter",
-    "make_spec",
-    "jobbench_prompts",
+    "spec",
+    "prompts",
     "compose_agent_body",
     "render_opencode_tree",
     "OC_RUNNER",

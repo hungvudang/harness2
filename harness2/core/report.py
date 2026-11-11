@@ -24,7 +24,7 @@ import statistics as st
 from dataclasses import dataclass
 from typing import Sequence
 
-from .judge import Scored
+from .judge import Grade
 from .schedule import MODE_NAMES
 
 
@@ -65,7 +65,7 @@ class Summary:
         return f"  {self.name}: n={self.n:>3} | {figures}{pick}{fb}{ug}"
 
 
-def _kind(r: Scored) -> str:
+def _kind(r: Grade) -> str:
     """Classify the selected output; each sequential checkpoint is a composed final."""
     lbl = str(getattr(r, "label", "") or "")
     if lbl.startswith("base"):
@@ -78,7 +78,7 @@ def _kind(r: Scored) -> str:
 
 
 def summarise(
-    rows: Sequence[Scored],
+    rows: Sequence[Grade],
     *,
     fell_back: dict[tuple[str, int], int] | None = None,
     usd: dict[tuple[str, int], float] | None = None,

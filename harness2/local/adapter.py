@@ -10,7 +10,7 @@ from pathlib import Path
 from .. import config
 from ..benchmarks.tasks import select
 from ..core import tree as HT
-from ..core.spec import BenchPrompts, BenchSpec, resolve_channel_model
+from ..core.spec import BenchPrompts, BenchSpec, resolve_channel
 from ..substrate import claude
 from ..utils import strings
 from .application.rollouts import Judge, Rollouts
@@ -43,7 +43,7 @@ class LocalAdapter:
         self.project = self._taskset.project
         self._split_file = split_file
         self.substrate = claude.SubstrateImpl()
-        channel = resolve_channel_model(None, None, effort="high")
+        channel = resolve_channel(None, None, effort="high")
         self.spec = BenchSpec(
             name=f"local-{self.project.name}",
             runs_root=config.RUNS / "local" / self.project.name,
@@ -89,7 +89,7 @@ class LocalAdapter:
             raise InvalidTaskSet(
                 f"{self.project.repo}/CLAUDE.md is missing or empty: nothing to harness"
             )
-        return HT.write_tree(claude.SURFACE, harness, self.spec.runs_root / "base", stubs=False)
+        return HT.write(claude.SURFACE, harness, self.spec.runs_root / "base", stubs=False)
 
     def validate_tree(self, tree: dict[str, str]) -> None:
         if not tree.get("CLAUDE.md", "").strip():

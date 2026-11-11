@@ -64,7 +64,7 @@ class SubprocessEnvTests(unittest.TestCase):
             launchers = {
                 "scrub_env": config.scrub_env(),
                 "proposer": prop_inst.env(),
-                "opencode": self.adapter.substrate.run_env(config.os.environ, self.root),
+                "opencode": self.adapter.substrate.exec_env(config.os.environ, self.root),
                 "codex": cx.exec_env(config.os.environ, codex_home=self.root),
                 "lab": lab._lab_env(),
             }
@@ -120,7 +120,7 @@ class SubprocessEnvTests(unittest.TestCase):
             captured = {}
             jb._run_runner = lambda _r, env, **_kw: captured.update(env)
             with patch("harness2.benchmarks.jobbench.render_opencode_tree"):
-                jb._launch_opencode(
+                jb._launch_oc(
                     RunRequest(task_ref="t1", run_ids=("r1",), timeout=10),
                     Install(staging_dir=self.root, fingerprint="fp"),
                 )
@@ -216,7 +216,7 @@ class SubprocessEnvTests(unittest.TestCase):
         }
         with (
             patch.dict("os.environ", host),
-            patch.object(config, "VERTEX_PROXY_KEY", "secret-codex"),
+            patch.object(config, "CODEX_API_KEY", "secret-codex"),
             patch.object(lab, "_require_runner"),
             patch.object(lab, "run_detached") as launch,
         ):
@@ -285,8 +285,8 @@ class SubprocessEnvTests(unittest.TestCase):
             for model, kept in cases.items():
                 with self.subTest(model=model):
                     with patch.object(config, "SOLVER_MODEL_OC", model):
-                        executor = opencode.SubstrateImpl().run_env(config.os.environ, self.root)
-                    explicit = opencode.SubstrateImpl().run_env(
+                        executor = opencode.SubstrateImpl().exec_env(config.os.environ, self.root)
+                    explicit = opencode.SubstrateImpl().exec_env(
                         config.os.environ, self.root, model=model
                     )
                     improver = Proposer(

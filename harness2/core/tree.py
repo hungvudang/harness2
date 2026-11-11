@@ -124,7 +124,7 @@ def _stub_paths(surface: SurfaceSpec) -> frozenset[str]:
     return frozenset(rel for rel, _ in surface.stubs)
 
 
-def read_tree(surface: SurfaceSpec, d: Path | str, *, rejected: list[str] | None = None) -> Tree:
+def read(surface: SurfaceSpec, d: Path | str, *, rejected: list[str] | None = None) -> Tree:
     """rel -> content for every file on the editable surface, README stubs excluded.
 
     Pass `rejected` to collect paths that exist on disk but are off the surface.
@@ -153,7 +153,7 @@ def exists(surface: SurfaceSpec, d: Path | str) -> bool:
     return d.is_dir() and any((d / a).is_file() for a in surface.always_on)
 
 
-def write_tree(surface: SurfaceSpec, tree: Tree, dest: Path | str, *, stubs: bool = True) -> Path:
+def write(surface: SurfaceSpec, tree: Tree, dest: Path | str, *, stubs: bool = True) -> Path:
     """Materialise an exact editable tree, with always-on files and optional stubs present.
 
     Files outside the editable surface are preserved; editable files already there are not.

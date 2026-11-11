@@ -223,7 +223,7 @@ class SubstrateImpl:
             staging_dir=staged, fingerprint=RM.fingerprint(tree_dir), extras={"install_mode": mode}
         )
 
-    def run_argv(
+    def exec_argv(
         self,
         prompt: str,
         workspace: Path,
@@ -265,7 +265,7 @@ class SubstrateImpl:
             argv += ["--session", session]
         return argv
 
-    def run_env(
+    def exec_env(
         self,
         base_env: Mapping[str, str],
         workspace: Path,
@@ -274,7 +274,7 @@ class SubstrateImpl:
         extra_allowed: tuple[str, ...] = (),
         model: str = "",
     ) -> dict[str, str]:
-        """The reference permission fence and output-token ceiling; see run_argv. Without
+        """The reference permission fence and output-token ceiling; see exec_argv. Without
         OPENCODE_PERMISSION the session auto-rejects reads of its own working tree. Keeps the
         provider key for `model`, or for the configured solver model when it is empty."""
         allow = {"*": "deny", str(workspace): "allow", f"{workspace}/**": "allow"}

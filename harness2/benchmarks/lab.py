@@ -34,7 +34,7 @@ from pathlib import Path
 from .. import config
 from ..core import runmark as RM
 from ..core import tree as HT
-from ..core.spec import BenchPrompts, BenchSpec, resolve_channel_model
+from ..core.spec import BenchPrompts, BenchSpec, resolve_channel
 from ..substrate import codex, opencode
 from ..substrate.base import Install, RunRequest
 from .tasks import discover, select
@@ -277,7 +277,7 @@ def _lookup(table: dict[str, str], value: str) -> str:
     return ""
 
 
-def lab_prompts(*, practice_area: str = "", work_type: str = "") -> BenchPrompts:
+def prompts(*, practice_area: str = "", work_type: str = "") -> BenchPrompts:
     """LAB-wide profile plus optional practice-area and work-type overlays."""
     parts = [
         LAB_BASE.domain_guidance,
@@ -491,11 +491,11 @@ def _require_runtime_scripts() -> frozenset[str]:
     return names
 
 
-def lab_spec(substrate_name: str) -> BenchSpec:
+def spec(substrate_name: str) -> BenchSpec:
     """The LAB BenchSpec for one substrate cell. A value, not a code path."""
     if substrate_name not in ("oc", "cx"):
         raise ValueError(f"substrate must be 'oc' or 'cx', got {substrate_name!r}")
-    channel = resolve_channel_model(None, None, effort="high")
+    channel = resolve_channel(None, None, effort="high")
     return BenchSpec(
         name="lab",
         runs_root=config.RUNS / "lab",
@@ -533,7 +533,7 @@ class LabAdapter:
         self.split_file = split_file
         if skill_mode not in ("native", "inline"):
             raise ValueError(f"skill_mode must be 'native' or 'inline', got {skill_mode!r}")
-        self.spec = lab_spec(substrate)
+        self.spec = spec(substrate)
         if substrate == "oc":
             self.substrate = opencode.SubstrateImpl(launcher=self._launch_oc)
             self.model = model or config.SOLVER_MODEL_OC
@@ -561,7 +561,7 @@ class LabAdapter:
     def prompts_for(self, task_id: str) -> BenchPrompts:
         """Practice-area + work-type overlay; criteria stripped at the same read boundary."""
         task = self._task_json(task_id)
-        return lab_prompts(
+        return prompts(
             practice_area=self.domain_of(task_id), work_type=str(task.get("work_type", ""))
         )
 
@@ -633,7 +633,7 @@ class LabAdapter:
                 f"missing binary), so this failure must not be cached"
             )
         self._check_tool_gate(out)
-        RM.mark_complete(
+        RM.mark(
             out,
             run_id=run_id,
             harness_dir=harness_dir,
@@ -735,8 +735,8 @@ class LabAdapter:
                 "ADAPT_LABCX_BASE_URL": os.environ.get("ADAPT_LABCX_BASE_URL")
                 or config.CODEX_BASE_URL,
             }
-            if config.VERTEX_PROXY_KEY:
-                env["VERTEX_PROXY_KEY"] = config.VERTEX_PROXY_KEY
+            if config.CODEX_API_KEY:
+                env["VERTEX_PROXY_KEY"] = config.CODEX_API_KEY
 
             try:
                 run_detached(
@@ -765,7 +765,7 @@ class LabAdapter:
         return RM.fingerprint(Path(run_dir) / "output") if self.delivered(run_dir) else None
 
     def artifacts_intact(self, run_dir: Path) -> bool:
-        marker = RM.read_mark(run_dir) or {}
+        marker = RM.read(run_dir) or {}
         return (
             (run_dir / "metrics.json").is_file()
             and "output_fingerprint" in marker
@@ -846,7 +846,7 @@ class LabAdapter:
         with _BASE_LOCK:
             if d not in _BASE_DONE:
                 if self.substrate.name == "oc":
-                    HT.write_tree(
+                    HT.write(
                         opencode.SURFACE,
                         {
                             "systemprompt.md": _opencode_base_body(self.skill_mode),
@@ -857,7 +857,7 @@ class LabAdapter:
                         d,
                     )
                 else:
-                    HT.write_tree(codex.SURFACE, {"AGENTS.md": CODEX_BASE_BODY}, d)
+                    HT.write(codex.SURFACE, {"AGENTS.md": CODEX_BASE_BODY}, d)
                 _BASE_DONE.add(d)
         return d
 
@@ -871,7 +871,7 @@ class LabAdapter:
 
     def _validate_oc(self, tree: dict[str, str]) -> None:
         with tempfile.TemporaryDirectory() as td:
-            d = HT.write_tree(opencode.SURFACE, tree, Path(td) / "h", stubs=False)
+            d = HT.write(opencode.SURFACE, tree, Path(td) / "h", stubs=False)
             try:
                 r = subprocess.run(
                     [str(config.LAB_PYTHON), "-c", _RENDER_CHECK_SRC, str(d), self.skill_mode],
@@ -1021,4 +1021,4 @@ class LabAdapter:
         }
 
 
-__all__ = ["LabAdapter", "lab_spec", "lab_prompts", "LAB_BASE", "CODEX_BASE_BODY", "JUDGE_MODEL"]
+__all__ = ["LabAdapter", "spec", "prompts", "LAB_BASE", "CODEX_BASE_BODY", "JUDGE_MODEL"]

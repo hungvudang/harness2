@@ -148,7 +148,7 @@ class SubstrateImpl:
                 shutil.copytree(src, dest, ignore=shutil.ignore_patterns("README.md"))
             else:
                 shutil.copy2(src, dest)
-        harness = HT.read_tree(SURFACE, tree_dir)
+        harness = HT.read(SURFACE, tree_dir)
         for name in HT.subagent_names(SURFACE, harness):
             dest = staged / ".claude" / "agents" / f"{name}.md"
             dest.parent.mkdir(parents=True, exist_ok=True)

@@ -56,7 +56,7 @@ class DemoAdapter:
         base = {name: "" for name in self.substrate.surface().always_on}
         base["systemprompt.md"] = "Reconcile the ledger using python scripts/summarize.py.\n"
         base["scripts/summarize.py"] = BASE_SCRIPT
-        tree.write_tree(self.substrate.surface(), base, self.base_harness(), stubs=False)
+        tree.write(self.substrate.surface(), base, self.base_harness(), stubs=False)
         for task_id, amounts in (
             ("ledger-1", "100.25\n-20.10\n5.00\n"),
             ("ledger-2", "35.50\n-10.25\n-5.00\n"),

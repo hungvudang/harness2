@@ -90,7 +90,7 @@ def _base(label: str) -> bool:
     return label.startswith("base")
 
 
-def selection_pool(
+def pool(
     mode: str, k: int, rollouts: dict[str, RunView], base: Sequence[RunView]
 ) -> dict[str, RunView]:
     """The one home for selection-pool construction: exactly the k finals of `mode`.
@@ -265,7 +265,7 @@ def _persist(sel: Selection, root: Path, run_dir: str) -> None:
         sel.error = (sel.error + f" | could not persist selection: {exc}")[:400]
 
 
-def run_selection(
+def run(
     task_id: str,
     k: int,
     mode: str,
@@ -357,7 +357,7 @@ def run_selection(
     return sel
 
 
-def trivial_selection(
+def trivial(
     task_id: str,
     k: int,
     mode: str,
@@ -369,12 +369,11 @@ def trivial_selection(
     """Deliver the single k=1 final without a selector session.
 
     The same non-answer drop rules apply, and the record is written with the standard
-    selection.json schema at the path run_selection uses, so judge watchers find it once.
+    selection.json schema at the path run uses, so judge watchers find it once.
     """
     if len(candidates) > 1:
         raise ValueError(
-            f"trivial_selection expects at most one candidate (the k=1 final), "
-            f"got {sorted(candidates)}"
+            f"trivial expects at most one candidate (the k=1 final), got {sorted(candidates)}"
         )
     sel = Selection(task_id=task_id, mode=mode, k=k, trivial=True)
     pool, _artifacts = _render_pool(candidates, adapter, sel)

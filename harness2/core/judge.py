@@ -35,7 +35,7 @@ def gradable(n_passed: int | None, n_criteria: int | None) -> bool:
 
 
 @dataclass
-class Scored:
+class Grade:
     task_id: str
     mode: str
     k: int
@@ -75,8 +75,8 @@ def judge_one(
     *,
     chosen_is_base: bool = False,
     selected_at: str = "",
-) -> Scored:
-    s = Scored(
+) -> Grade:
+    s = Grade(
         task_id=task_id,
         mode=mode,
         k=k,
@@ -102,9 +102,9 @@ def judge_one(
 
 def judge_selections(
     adapter: BenchmarkAdapter, selections: Sequence[dict], *, parallel: int = 8
-) -> list[Scored]:
+) -> list[Grade]:
     """Judge each selection's chosen run, given Selection.to_dict() records."""
-    out: list[Scored] = []
+    out: list[Grade] = []
     if not selections:
         return out
     with ThreadPoolExecutor(max_workers=parallel) as pool:
@@ -113,7 +113,7 @@ def judge_selections(
             rd = sel.get("chosen_run_dir")
             if not sel.get("ok") or not sel.get("chosen_label") or not rd:
                 out.append(
-                    Scored(
+                    Grade(
                         task_id=sel.get("task_id", ""),
                         mode=_mode_of(sel),
                         k=sel.get("k", 0),
@@ -145,7 +145,7 @@ def judge_selections(
             except Exception as exc:
                 sel = futs[f]
                 out.append(
-                    Scored(
+                    Grade(
                         task_id=sel.get("task_id", ""),
                         mode=_mode_of(sel),
                         k=sel.get("k", 0),
@@ -159,7 +159,7 @@ def judge_selections(
     return out
 
 
-def write(rows: Sequence[Scored], path: Path | str) -> Path:
+def write(rows: Sequence[Grade], path: Path | str) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

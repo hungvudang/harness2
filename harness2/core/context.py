@@ -303,8 +303,8 @@ def _write_pool(
             assert_no_leak_paths(cand_dir, adapter.spec.leak_globs)
             _copy_tree(Path(cand_dir), d / "harness")
             surface = adapter.substrate.surface()
-            reference = harness_tree.read_tree(surface, dest / "harness")
-            candidate = harness_tree.read_tree(surface, cand_dir)
+            reference = harness_tree.read(surface, dest / "harness")
+            candidate = harness_tree.read(surface, cand_dir)
             diff = "".join(
                 line
                 for name in sorted(reference.keys() | candidate.keys())

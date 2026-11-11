@@ -39,7 +39,7 @@ from .. import config
 from ..core import runmark as RM
 from ..core import tree as HT
 from ..core.selection import order_graded_first
-from ..core.spec import BenchPrompts, BenchSpec, resolve_channel_model
+from ..core.spec import BenchPrompts, BenchSpec, resolve_channel
 from ..substrate import codex, opencode
 from ..substrate.base import Install, RunRequest
 from . import wb_render as RENDER
@@ -108,7 +108,7 @@ SUBSETS: dict[str, Subset] = {
 }
 
 
-def label_sanitize(s: str) -> str:
+def sanitize_label(s: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]", "-", s)
 
 
@@ -378,7 +378,7 @@ WORKBUDDY_DOMAINS: dict[str, dict[str, str]] = {
 }
 
 
-def workbuddy_prompts(subset: str, *, domain: str = "") -> BenchPrompts:
+def prompts(subset: str, *, domain: str = "") -> BenchPrompts:
     """WorkBuddy subset profile plus its role/category overlay."""
     key = _norm(subset)
     if key not in WORKBUDDY_BASES:
@@ -527,7 +527,7 @@ def _job_yaml(
             "      target: /opt/codex\n"
             "      read_only: true\n"
             "env_override:\n"
-            f"  VERTEX_PROXY_KEY: {json.dumps(config.VERTEX_PROXY_KEY)}\n"
+            f"  VERTEX_PROXY_KEY: {json.dumps(config.CODEX_API_KEY)}\n"
             f"  VERTEXAI_LOCATION: {config.VERTEX_REGION}\n"
             f"  CODEX_BRIDGE_URL: {json.dumps(config.CODEX_CONTAINER_URL)}\n"
             f"{hp_block}"
@@ -607,7 +607,7 @@ def run_batch(
 
         before = set(_run_dirs(label_dir))
         digest = hashlib.sha1(f"{label}|{subset.name}|{sorted(todo)}".encode()).hexdigest()[:8]
-        slug = f"{EPHEMERAL_PREFIX}{label_sanitize(label)[:40]}-{digest}"
+        slug = f"{EPHEMERAL_PREFIX}{sanitize_label(label)[:40]}-{digest}"
         yaml_path = config.wb_repo() / "configs" / "jobs" / f"{slug}.yaml"
         label_dir.mkdir(parents=True, exist_ok=True)
         yaml_path.write_text(
@@ -648,14 +648,14 @@ def run_batch(
         return sorted(set(_run_dirs(label_dir)) - before)
 
 
-def spec_for(subset: str, substrate: str) -> BenchSpec:
+def spec(subset: str, substrate: str) -> BenchSpec:
     s = SUBSETS[subset]
-    channel = resolve_channel_model(None, None, effort="high")
+    channel = resolve_channel(None, None, effort="high")
     return BenchSpec(
         name=f"wb-{subset}",
         runs_root=config.RUNS / "wb" / subset,
         install_mode="home_dir_jinja" if substrate == "oc" else "codex_root",
-        prompts=workbuddy_prompts(subset),
+        prompts=prompts(subset),
         channels={"proposer": channel, "selector": channel},
         domain_word="category",
         leak_globs=s.leak_globs,
@@ -679,7 +679,7 @@ class WbAdapter:
             raise ValueError(f"unknown substrate {substrate!r}; one of {SUBSTRATES}")
         self.subset = subset
         self.subset_info = SUBSETS[subset]
-        self.spec = spec_for(subset, substrate)
+        self.spec = spec(subset, substrate)
         self.substrate = (
             opencode.SubstrateImpl(launcher=self._launch)
             if substrate == "oc"
@@ -698,7 +698,7 @@ class WbAdapter:
         return sorted(set(discover("wb", self.subset).values()))
 
     def prompts_for(self, task_id: str) -> BenchPrompts:
-        return workbuddy_prompts(self.subset, domain=self.domain_of(task_id))
+        return prompts(self.subset, domain=self.domain_of(task_id))
 
     def task_prompt(self, task_id: str) -> str:
         """instruction.md verbatim; `leak_globs` covers the answer-key paths."""
@@ -722,7 +722,7 @@ class WbAdapter:
         return label
 
     def _label_dir(self, label: str) -> Path:
-        return self.spec.runs_root / "rollouts" / label_sanitize(label)
+        return self.spec.runs_root / "rollouts" / sanitize_label(label)
 
     def _trials(self, label: str, task_id: str) -> list[Path]:
         """Every trial of `task_id` under this label, merged across timestamped run dirs."""
@@ -745,7 +745,7 @@ class WbAdapter:
 
     def _identity_matches(self, trial: Path) -> bool:
         """True when `trial`'s marker names this cell's executor identity."""
-        m = RM.read_mark(Path(trial)) or {}
+        m = RM.read(Path(trial)) or {}
         return all(m.get(key) == val for key, val in self._cell_identity().items())
 
     def _reusable(self, trial: Path, harness_dir: Path | None) -> bool:
@@ -816,9 +816,7 @@ class WbAdapter:
         if not fresh:
             raise RuntimeError(f"Harbor produced no finished trial for {label} / {task_id}")
         chosen = fresh[0]
-        RM.mark_complete(
-            chosen, run_id=run_id, harness_dir=harness_dir, extra=self._cell_identity()
-        )
+        RM.mark(chosen, run_id=run_id, harness_dir=harness_dir, extra=self._cell_identity())
         return chosen
 
     def execute_many(
@@ -847,8 +845,8 @@ class WbAdapter:
             finally:
                 self._drop_staging(install)
             for t in fresh:
-                if not RM.read_mark(t):
-                    RM.mark_complete(
+                if not RM.read(t):
+                    RM.mark(
                         t, run_id=run_ids[0], harness_dir=harness_dir, extra=self._cell_identity()
                     )
             mine = _mine()
@@ -894,7 +892,7 @@ class WbAdapter:
         with _BASE_LOCK:
             if d not in _BASE_DONE:
                 if self.substrate.name == "oc":
-                    HT.write_tree(
+                    HT.write(
                         opencode.SURFACE,
                         {
                             "systemprompt.md": "",
@@ -906,7 +904,7 @@ class WbAdapter:
                         stubs=True,
                     )
                 else:
-                    HT.write_tree(
+                    HT.write(
                         codex.SURFACE,
                         {
                             "AGENTS.md": (
@@ -926,7 +924,7 @@ class WbAdapter:
         if self.substrate.name != "oc":
             return
         with tempfile.TemporaryDirectory() as td:
-            staged = HT.write_tree(opencode.SURFACE, tree, Path(td) / "h")
+            staged = HT.write(opencode.SURFACE, tree, Path(td) / "h")
             opencode.assert_jinja_safe(opencode.compose_prompt(staged))
 
     def preflight(self) -> None:
@@ -1004,7 +1002,7 @@ class WbAdapter:
 
 def _mark_matches(trial: Path, fingerprint: str) -> bool:
     """runmark's complete against a known fingerprint string."""
-    m = RM.read_mark(Path(trial))
+    m = RM.read(Path(trial))
     return bool(m) and m.get("version") == RM.VERSION and m.get("harness") == fingerprint
 
 
@@ -1014,14 +1012,14 @@ __all__ = [
     "SUBSETS",
     "SCOREABLE",
     "SUBSTRATES",
-    "spec_for",
-    "workbuddy_prompts",
+    "spec",
+    "prompts",
     "WORKBUDDY_BASES",
     "WORKBUDDY_DOMAINS",
     "resolve_task",
     "score_from_payload",
     "run_batch",
     "sweep_orphans",
-    "label_sanitize",
+    "sanitize_label",
     "TRAJ_MAX_CHARS",
 ]

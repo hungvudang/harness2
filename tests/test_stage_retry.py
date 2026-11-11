@@ -60,9 +60,7 @@ class StageRetryTests(unittest.TestCase):
                 ctx_dir=work / "context",
                 task_id="ledger-1",
                 rollouts=[],
-                fallback=tree.read_tree(
-                    self.adapter.substrate.surface(), self.adapter.base_harness()
-                ),
+                fallback=tree.read(self.adapter.substrate.surface(), self.adapter.base_harness()),
                 harness_dir=self.adapter.base_harness(),
                 library_dir=None,
             )

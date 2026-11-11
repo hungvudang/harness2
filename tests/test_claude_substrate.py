@@ -60,7 +60,7 @@ class Surface(unittest.TestCase):
 class Materialise(unittest.TestCase):
     def setUp(self):
         self.tree_dir = Path(tempfile.mkdtemp())
-        HT.write_tree(
+        HT.write(
             SURFACE,
             {
                 "CLAUDE.md": "Build with ./gradlew build.\n- When reviewing, use the `review` skill.\n",

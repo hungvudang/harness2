@@ -85,7 +85,7 @@ class Library:
         return sorted(p.name for p in d.iterdir() if p.is_dir()) if d.is_dir() else []
 
     def tree_of(self, task_id: str) -> harness_tree.Tree:
-        return harness_tree.read_tree(self.surface, self.entry_dir(task_id) / "harness")
+        return harness_tree.read(self.surface, self.entry_dir(task_id) / "harness")
 
     def forget(self, task_ids: Sequence[str]) -> None:
         """Drop the entries for these tasks and rebuild INDEX.md; unknown tasks are ignored."""
@@ -125,7 +125,7 @@ class Library:
 
         shutil.rmtree(d / "harness", ignore_errors=True)
         (d / "harness").mkdir(parents=True, exist_ok=True)
-        harness_tree.write_tree(self.surface, harness, d / "harness", stubs=False)
+        harness_tree.write(self.surface, harness, d / "harness", stubs=False)
 
         exp = experience or {}
         lines = [
@@ -167,7 +167,7 @@ class Library:
         for name in names:
             ed = self.dir / "harnesses" / name
             cue = _field(ed / "EXPERIENCE.md", "cue")
-            tree = harness_tree.read_tree(self.surface, ed / "harness")
+            tree = harness_tree.read(self.surface, ed / "harness")
             rows += [
                 f"## `harnesses/{name}/`",
                 f"- harness: `harnesses/{name}/harness/` — {_inventory(self.surface, tree)}",

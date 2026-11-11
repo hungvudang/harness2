@@ -48,7 +48,7 @@ class ChannelSpec:
             raise ValueError(f"unknown channel {self.kind!r}; expected one of {CHANNELS}")
 
 
-def resolve_channel_model(
+def resolve_channel(
     kind: str | None,
     model: str | None,
     *,
@@ -277,7 +277,7 @@ __all__ = [
     "RunView",
     "ModelId",
     "resolve_prompts",
-    "resolve_channel_model",
+    "resolve_channel",
     "CHANNELS",
     "INSTALL_MODES",
 ]

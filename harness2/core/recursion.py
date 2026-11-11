@@ -217,7 +217,7 @@ def _run_stage(
             )
             continue
         rejected: list[str] = []
-        new = harness_tree.read_tree(surface, reply.workspace, rejected=rejected)
+        new = harness_tree.read(surface, reply.workspace, rejected=rejected)
         if not new:
             err = "`context/harness/` came back empty -- edit the files, do not delete them all"
             continue
@@ -230,12 +230,12 @@ def _run_stage(
                 f"`scripts/check_totals.py`)."
             )
             # The retry reads a fresh copy of `context/`, so it must hold this attempt's edits.
-            harness_tree.write_tree(surface, new, tree.root / "harness")
+            harness_tree.write(surface, new, tree.root / "harness")
             continue
 
         kept, err = _accept_tree(surface, adapter, new, fallback, label)
         if err:
-            harness_tree.write_tree(surface, new, tree.root / "harness")
+            harness_tree.write(surface, new, tree.root / "harness")
             continue
         notes = re.search(r"<notes>(.*?)</notes>", reply.text, re.S)
         return Stage(
@@ -282,9 +282,7 @@ def _roll(
     """Materialise a harness and roll it once. A dead rollout is recorded, never raised."""
     hdir = None
     if tree is not None:
-        hdir = harness_tree.write_tree(
-            adapter.substrate.surface(), tree, work_dir / "harnesses" / label
-        )
+        hdir = harness_tree.write(adapter.substrate.surface(), tree, work_dir / "harnesses" / label)
     run_id = run_id_of(label)
     try:
         rd = adapter.execute(task_id, hdir, run_id)
@@ -374,7 +372,7 @@ def run_parallel(
     result.rollouts.update({r.label: r for r in base})
     ctx_dir = work_dir / "context"
     benchmark_prompts = resolve_prompts(adapter, task_id)
-    base_dir = harness_tree.write_tree(surface, base_tree, work_dir / "harnesses" / "base")
+    base_dir = harness_tree.write(surface, base_tree, work_dir / "harnesses" / "base")
 
     specs = [(f"{d.lower()}{i}", d, i) for i in range(1, k + 1) for d in ("INV", "DOM")]
     with ThreadPoolExecutor(max_workers=min(len(specs), propose_workers)) as pool_x:
@@ -488,7 +486,7 @@ def run_sequential(
     history: list[tuple[str, Path, RunView | None]] = []
     for t in range(1, k + 1):
         current_label = f"c{t - 1}" if t > 1 else "base"
-        current_dir = harness_tree.write_tree(
+        current_dir = harness_tree.write(
             surface, current_harness, work_dir / "harnesses" / current_label
         )
         specs = [(f"inv{t}", "INV"), (f"dom{t}", "DOM")]

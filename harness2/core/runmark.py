@@ -90,7 +90,7 @@ def inputs_fingerprint(task_prompt: str, files_dir: Path | None) -> str:
     return h.hexdigest()[:16]
 
 
-def mark_complete(
+def mark(
     where: Path,
     *,
     run_id: str,
@@ -122,7 +122,7 @@ def mark_complete(
     return final
 
 
-def read_mark(where: Path) -> dict | None:
+def read(where: Path) -> dict | None:
     try:
         return json.loads((Path(where) / MARK).read_text())
     except Exception:
@@ -143,7 +143,7 @@ def complete(
     written before input identity existed (no `inputs` key) stays reusable: rewriting identity
     for every in-flight run is a bigger decision than this check is worth.
     """
-    m = read_mark(where)
+    m = read(where)
     if not m or m.get("version") != VERSION:
         return False
     if inputs is not None and not _inputs_match(m, inputs):
@@ -161,7 +161,7 @@ def _inputs_match(m: dict, inputs: str | None) -> bool:
 
 def why_not(where: Path, *, harness_dir: Path | None = None, inputs: str | None = None) -> str:
     """A sentence for a log line explaining why `where` is or is not reusable."""
-    m = read_mark(where)
+    m = read(where)
     if not m:
         return f"no {MARK} -- never finished, or finished before completion was recorded"
     if m.get("version") != VERSION:

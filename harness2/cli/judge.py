@@ -47,8 +47,8 @@ _DERIVED = ("frac", "graded")
 _PARALLEL = 8
 
 
-def _load_rows(path: Path) -> list[J.Scored]:
-    """Rebuild Scored rows from a judged.json written by core.judge.write."""
+def _load_rows(path: Path) -> list[J.Grade]:
+    """Rebuild Grade rows from a judged.json written by core.judge.write."""
     if not path.is_file():
         return []
     try:
@@ -60,11 +60,11 @@ def _load_rows(path: Path) -> list[J.Scored]:
         row = {k: v for k, v in row.items() if k not in _DERIVED}
         if "mode" not in row and "arm" in row:
             row["mode"] = row.pop("arm")
-        rows.append(J.Scored(**row))
+        rows.append(J.Grade(**row))
     return rows
 
 
-def _merge(old: list[J.Scored], new: list[J.Scored]) -> list[J.Scored]:
+def _merge(old: list[J.Grade], new: list[J.Grade]) -> list[J.Grade]:
     """Per (task, mode, k): a changed chosen run or a re-selected task replaces; for the same
     selection the graded row wins, so a failed re-judge never erases an existing score.
 

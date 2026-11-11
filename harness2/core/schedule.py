@@ -223,7 +223,7 @@ def _restore_libraries(
         ):
             continue
         n = Namespace(adapter.spec.name, adapter.substrate.name, mode, k, seed, tag)
-        tree = harness_tree.read_tree(surface, n.task_dir(runs_root, task_id) / "harnesses" / label)
+        tree = harness_tree.read(surface, n.task_dir(runs_root, task_id) / "harnesses" / label)
         if not tree:
             continue
         lib.add(
@@ -558,13 +558,11 @@ def _run_one_mode(
         for stage in r.stages
         if stage.execution_failed
     )
-    candidates = selection.selection_pool(mode, k, r.rollouts, base)
+    candidates = selection.pool(mode, k, r.rollouts, base)
     if pool_policy == "finals" and k == 1:
-        sel = selection.trivial_selection(
-            task_id, k, mode, candidates, adapter=adapter, work_dir=work_dir
-        )
+        sel = selection.trivial(task_id, k, mode, candidates, adapter=adapter, work_dir=work_dir)
     else:
-        sel = selection.run_selection(
+        sel = selection.run(
             task_id,
             k,
             mode,
@@ -668,7 +666,7 @@ def run_task(
         return res
 
     surface = adapter.substrate.surface()
-    base_tree = harness_tree.read_tree(surface, adapter.base_harness())
+    base_tree = harness_tree.read(surface, adapter.base_harness())
 
     labels = [f"base{i}" for i in range(1, k + 1)]
     run_ids = [base_ns.run_id(task_id, label) for label in labels]
