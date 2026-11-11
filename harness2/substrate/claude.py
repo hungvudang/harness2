@@ -19,6 +19,7 @@ from .. import config
 from ..core import runmark as RM
 from ..core import tree as HT
 from ..core.tree import SurfaceSpec
+from ..utils import strings
 from .base import Install, Launcher, RunRequest
 
 CLAUDE_SURFACE = SurfaceSpec(
@@ -284,16 +285,11 @@ class ClaudeSubstrate:
             raise RuntimeError(f"`claude --version` failed: {(p.stderr or p.stdout)[-300:]}")
 
 
-_TRUNC_FMT = "…(+{n} chars — render truncation)"
+_CLIP_REASON = "render truncation"
 
 
-def _clip(s, n: int) -> str:
-    if s is None:
-        return ""
-    s = str(s).replace("\x00", "")
-    if n <= 0 or len(s) <= n:
-        return s
-    return s[:n] + _TRUNC_FMT.format(n=len(s) - n)
+def _clip(value, limit: int) -> str:
+    return strings.clip(value, limit, reason=_CLIP_REASON)
 
 
 def parse_events(path: Path) -> list[dict]:
@@ -408,7 +404,7 @@ def render_events(path: Path, *, obs_trunc: int, max_chars: int, args_trunc: int
         return "(no parseable events in trajectory)"
     if len(rendered) > max_chars:
         dropped = len(rendered) - max_chars
-        rendered = rendered[:max_chars] + "\n" + _TRUNC_FMT.format(n=dropped)
+        rendered = rendered[:max_chars] + "\n" + strings.omission(dropped, _CLIP_REASON)
     return rendered
 
 

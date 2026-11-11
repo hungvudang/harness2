@@ -12,6 +12,7 @@ from ..benchmarks.tasks import select
 from ..core import tree as HT
 from ..core.spec import BenchPrompts, BenchSpec, resolve_channel_model
 from ..substrate.claude import CLAUDE_SURFACE, ClaudeSubstrate
+from ..utils import strings
 from .application.rollouts import Judge, Rollouts
 from .domain.errors import InvalidTaskSet
 from .infrastructure.claude.agent import AgentImpl, project_setup
@@ -112,10 +113,7 @@ class LocalAdapter:
         return text.replace(workspace + "/", "").replace(workspace, ".")
 
     def deliverable_text(self, run_dir: Path) -> str:
-        text = self._runs.diff(run_dir)
-        if len(text) > DIFF_CAP:
-            return text[:DIFF_CAP] + f"\n…(+{len(text) - DIFF_CAP} chars of diff truncated)"
-        return text
+        return strings.clip(self._runs.diff(run_dir), DIFF_CAP, reason="diff truncated")
 
     def deliverable_files(self, run_dir: Path) -> dict[str, str]:
         return {DIFF_FILE: self.deliverable_text(run_dir)}

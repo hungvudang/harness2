@@ -5,19 +5,21 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from ...utils import numbers, strings
+
 
 def _text(value: str, field: str) -> None:
-    if not isinstance(value, str) or not value.strip():
+    if strings.blank(value):
         raise ValueError(f"`{field}` must be a nonempty string")
 
 
 def _texts(values: tuple[str, ...], field: str) -> None:
-    if any(not isinstance(v, str) or not v.strip() for v in values):
+    if any(strings.blank(v) for v in values):
         raise ValueError(f"`{field}` must be a list of nonempty strings")
 
 
 def _positive(value: int, field: str) -> None:
-    if value <= 0:
+    if not numbers.positive(value):
         raise ValueError(f"`{field}` must be a positive number of seconds, got {value}")
 
 
@@ -39,7 +41,7 @@ class Project:
         _text(self.model, "model")
         _texts(self.commands, "commands")
         _positive(self.timeout, "timeout")
-        if self.max_turns < 0:
+        if not numbers.natural(self.max_turns):
             raise ValueError(f"`max_turns` must be 0 (unlimited) or more, got {self.max_turns}")
 
 
