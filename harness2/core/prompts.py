@@ -614,6 +614,25 @@ class _SurfaceText:
     tts_surface: str
 
 
+# The Claude Code surface has the codex shape (one always-on file, skills, subagents, scripts,
+# Claude-Code-schema hooks); only the paths differ, so its text is derived, not duplicated.
+_CODEX_TO_CLAUDE = (
+    (
+        "`.codex/hooks.json` -- ONE JSON file, Claude-Code hook schema:",
+        "`.claude/settings.json` -- ONE JSON file, Claude Code settings:",
+    ),
+    (".codex/hooks.json", ".claude/settings.json"),
+    (".agents/skills", ".claude/skills"),
+    ("AGENTS.md", "CLAUDE.md"),
+)
+
+
+def _claude_from_codex(text: str) -> str:
+    for old, new in _CODEX_TO_CLAUDE:
+        text = text.replace(old, new)
+    return text
+
+
 def _build_surface_texts() -> dict[str, _SurfaceText]:
     oc_tts = "\n\n".join(
         [
@@ -629,7 +648,29 @@ def _build_surface_texts() -> dict[str, _SurfaceText]:
             _surface_part(_SURFACE_CODEX, "# HOW TO MAKE A CHANGE"),
         ]
     )
+    cc_surface = _claude_from_codex(_SURFACE_CODEX)
+    cc_tts = "\n\n".join(
+        [
+            _claude_from_codex(_TTS_SURFACE_HEAD_CODEX),
+            _surface_part(cc_surface, "A skill only exists", "THE DELIVERABLE'S SHAPE"),
+            _surface_part(cc_surface, "# HOW TO MAKE A CHANGE"),
+        ]
+    )
     return {
+        "claude": _SurfaceText(
+            surface_md=cc_surface,
+            inv=_INV_TEMPLATE.replace(
+                "__LOOP_LEVER__",
+                "hook in `.claude/settings.json` -- for example, blocking a finish before a "
+                "{deliverable} exists, with a corrective reason",
+            ),
+            dom=_DOM_TEMPLATE.replace(
+                "__TRIGGER_SENTENCE__",
+                "A skill exists only once its name appears in `CLAUDE.md` as a trigger: write "
+                "that trigger line in the same edit.",
+            ),
+            tts_surface=cc_tts,
+        ),
         "opencode": _SurfaceText(
             surface_md=_SURFACE_OPENCODE,
             inv=_INV_TEMPLATE.replace(

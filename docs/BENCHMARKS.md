@@ -122,3 +122,59 @@ the improver never receives verifier output. Missing verifier results remain
 unscored. Runs live under `runs/wb/<subset>/`.
 
 For Codex, start the bridge with `harness2-bridge --host 0.0.0.0` so that the containers can reach it.
+
+## Local tasks
+
+Your own project's history as tasks, run with the
+[Claude executor](SETUP.md#claude-executor). The base harness is the project's
+current `CLAUDE.md` and `.claude/` setup. Each rollout starts from
+`git archive <commit>` of the repository (no later history visible), installs the
+candidate harness over the project's own Claude Code files, and delivers the diff
+the agent made.
+
+Point `HARNESS2_LOCAL_TASKS` at a folder (default `./tasks`, ignored by git):
+
+```text
+tasks/
+  bench.toml
+  <task-id>/
+    task.toml
+    instruction.md
+```
+
+```toml
+# bench.toml
+name = "my-service"
+repo = "~/code/my-service"
+work = "implement backend changes in a Gradle multi-module service"
+domain_word = "module"
+model = "sonnet"
+commands = ["./gradlew", "git status", "git diff", "git log"]
+```
+
+```toml
+# <task-id>/task.toml
+commit = "<sha the work started from>"
+domain = "order"
+criteria = ["./gradlew clean build"]
+```
+
+`instruction.md` is the request as a developer would give it: the ticket text,
+without notes written after the work was done. `criteria` are shell commands that
+must exit 0 in the finished workspace; each one is a criterion for
+`harness2-judge` and is never shown to the improver.
+
+```bash
+harness2-check --bench local --substrate cc
+harness2 --bench local --substrate cc --k 1 --mode parallel --max-tasks 1
+harness2-judge --bench local --substrate cc --k 1 --mode parallel
+harness2-report --bench local --substrate cc --k 1 --mode parallel
+```
+
+Outputs are under `runs/local/<name>/`.
+
+The code lives in `harness2/local/`, layered so each part depends only inward:
+`domain/` (Project, Task, Rollout, Verdict and their invariants) <- `application/`
+(the `TaskSet`, `Workspace`, `Agent` and `Runs` ports, and the `Rollouts` and `Judge`
+use cases) <- `infrastructure/` (`toml`, `git`, `claude` and `fs` implementations)
+<- `adapter.py`, which wires them and exposes the shared benchmark adapter.

@@ -25,19 +25,21 @@ from harness2 import config, install
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("benchmark", choices=("jb", "lab", "wb"))
+    p.add_argument("benchmark", choices=("jb", "lab", "wb", "local"))
     p.add_argument(
         "--subset",
         choices=("office", "web", "code"),
         default=None,
         help="wb only: one subset to install; omitted installs office, web, and code",
     )
-    p.add_argument("--substrate", choices=("oc", "cx"), default="oc")
+    p.add_argument("--substrate", choices=("oc", "cx", "cc"), default="oc")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args(argv)
     if args.subset and args.benchmark != "wb":
         p.error("--subset only applies to wb")
     dry = args.dry_run
+    if args.benchmark == "local":
+        return _setup_local(p, dry)
     missing = install.missing_runners()
     if missing and not dry:
         p.exit(1, f"setup failed: {missing}\n")
@@ -113,6 +115,32 @@ def main(argv=None):
         if dry
         else "Installation complete. Run harness2-check before an experiment."
     )
+    return 0
+
+
+def _setup_local(p, dry: bool) -> int:
+    """Only the improver channel is installed: the executor is the operator's own `claude`."""
+    try:
+        if not dry:
+            for binary in ("git", "npm", "claude"):
+                if not shutil.which(binary):
+                    raise RuntimeError(f"Missing {binary}; see docs/SETUP.md#claude-executor")
+        install.clone("opencode", dry_run=dry)
+        install.patch("opencode", dry_run=dry)
+        install.run(
+            ["npm", "install", "--prefix", config.DEPENDENCIES / "tools", "bun@1.3.11"], dry_run=dry
+        )
+        install.run(
+            [config.BUN, "install", "--frozen-lockfile", "--ignore-scripts"],
+            cwd=config.OPENCODE_DIR,
+            dry_run=dry,
+        )
+    except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
+        p.exit(1, f"setup failed: {exc}\n")
+    if dry:
+        print("Setup plan complete.")
+        return 0
+    print("Installation complete. Run harness2-check --bench local --substrate cc.")
     return 0
 
 

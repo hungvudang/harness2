@@ -206,11 +206,20 @@ def _main(args: argparse.Namespace) -> int:
     return 2 if failed else 0
 
 
+def _executor_model(adapter, substrate: str) -> str:
+    own = getattr(adapter, "executor_model", None)
+    if own:
+        return own
+    if substrate == "cx":
+        return config.SOLVER_MODEL_CX
+    return config.SOLVER_MODEL_OC
+
+
 def _check_identity(adapter, args, namespace_dir: Path) -> None:
     """Prevent a resumed run or library from silently mixing models or task partitions."""
     identity = {
         "method_version": config.METHOD_VERSION,
-        "executor": config.SOLVER_MODEL_OC if args.substrate == "oc" else config.SOLVER_MODEL_CX,
+        "executor": _executor_model(adapter, args.substrate),
         "improver": config.IMPROVER_MODEL,
         "judge": config.JUDGE_MODEL,
         "project": config.VERTEX_PROJECT,

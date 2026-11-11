@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+
+class InvalidTaskSet(ValueError):
+    pass

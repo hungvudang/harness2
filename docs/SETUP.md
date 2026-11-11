@@ -147,6 +147,34 @@ changing either. `harness2-check` reports stale configuration until then.
 Codex runs with its sandbox disabled. Review the
 [executor network restrictions](EXPERIMENTS.md#web-access) before evaluation.
 
+## Claude executor
+
+`--substrate cc` runs each rollout with your own `claude` CLI (Claude Code) and
+harnesses a project's Claude Code setup: `CLAUDE.md`, `.claude/skills`,
+`.claude/agents` (edited as `sub_agents/`), hooks in `.claude/settings.json`, and
+`scripts/`. It runs on `--bench local` only.
+
+Rollouts authenticate with the CLI's existing login. Each one loads project
+settings only (`--setting-sources project`) and no MCP servers
+(`--strict-mcp-config`), so your user-level `~/.claude` never reaches a probe.
+Permissions are an allow-list: file tools plus the Bash command prefixes listed
+in `bench.toml`; nothing runs with permissions bypassed.
+
+The improver stays on its own channel. For an OpenAI improver, set
+`HARNESS2_IMPROVER_MODEL=openai/<model>` and `OPENAI_API_KEY`; setup installs only
+OpenCode for that channel:
+
+```bash
+harness2-setup local
+harness2-check --bench local --substrate cc
+```
+
+`HARNESS2_CLAUDE_MODEL` (default `sonnet`) or `model` in `bench.toml` selects the
+executor model. See [local tasks](BENCHMARKS.md#local-tasks) for the task folder.
+
+The adopted harness is written under `runs/local/<name>/`; it is never copied into
+your project. Review it as a diff against the project's own files before applying.
+
 ## Network access during setup
 
 Setup downloads dependencies from the following hosts:

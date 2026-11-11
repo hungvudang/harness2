@@ -26,6 +26,9 @@ from .substrate.opencode import OpencodeSubstrate
 
 
 def check(adapter, *, judge=False) -> list[str]:
+    readiness = getattr(adapter, "readiness", None)
+    if callable(readiness):
+        return readiness()
     missing = missing_runners()
     if missing:
         return [missing]

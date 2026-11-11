@@ -12,6 +12,9 @@ __pycache__/
 # Run outputs (the HARNESS2_RUNS_DIR default).
 /runs/
 
+# Local task folders (the HARNESS2_LOCAL_TASKS default); they hold private project tickets.
+/tasks/
+
 # Checkouts, runtimes and data downloaded by harness2-setup.
 /dependencies/*
 !/dependencies/README.md
